@@ -34,7 +34,11 @@ public class FileClient {
                 String response = new String(receivePacket.getData(), 0, receivePacket.getLength());
                 if (response.equals("Server: File not found!")) {
                     System.out.println("Client: File not found on server.");
+                    System.out.println("Client: Failed to download file from server.");
                     break;
+                }
+                else {
+                    System.out.println("Client: File downloaded successfully!");
                 }
 
                 fos.write(receivePacket.getData(), 0, receivePacket.getLength());
@@ -43,7 +47,8 @@ public class FileClient {
                 }
             }
             fos.close();
-            System.out.println("Client: File downloaded successfully!");
+            socket.close();
+            
         } catch (IOException e) {
             e.printStackTrace();
         }
