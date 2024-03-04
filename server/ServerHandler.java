@@ -27,23 +27,23 @@ public class ServerHandler {
     public void processRequest(int messageHeader, String[] messageBody) {
         switch (messageHeader) {
             case 1:
-                System.out.println("Server: Request Type: " + messageHeader + ". Read a content from a file");
+                System.out.println("Server: Request [" + messageHeader + "] Read a content from a file");
                 startRead(messageBody);
                 break;
             case 2:
-                System.out.println("Server: Request Type: " + messageHeader + ". Insert a content into a file");
+                System.out.println("Server: Request [" + messageHeader + "] Insert a content into a file");
                 startInsert(messageBody);
                 break;
             case 3:
-                System.out.println("Server: Request Type: " + messageHeader + ". Monitor updates of a file");
+                System.out.println("Server: Request [" + messageHeader + "] Monitor updates of a file");
                 startMonitor(messageBody);
                 break;
             case 4:
-                System.out.println("Server: Request Type: " + messageHeader + ". Idempotent service");
+                System.out.println("Server: Request [" + messageHeader + "] Idempotent service");
                 startIdempotent(messageBody);
                 break;
             case 5:
-                System.out.println("Server: Request Type: " + messageHeader + ". Non-idempotent service");
+                System.out.println("Server: Request [" + messageHeader + "] Non-idempotent service");
                 startNonIdempotent(messageBody);
                 break;
             default:
@@ -111,7 +111,7 @@ public class ServerHandler {
         try {
 
             // Marshal the data into a byte array
-            byte[] marshalledData = util.Marshaller.marshal(message);
+            byte[] marshalledData = utils.Marshaller.marshal(message);
 
             // Convert into data packet
             DatagramPacket packet = new DatagramPacket(marshalledData, marshalledData.length, this.clientAddress, this.clientPort);
@@ -135,7 +135,7 @@ public class ServerHandler {
             System.out.println("Server: Connected Client: " + clientAddress.toString().substring(1) + ":" + clientPort);
 
             byte[] marshalledData = packet.getData();
-            String unmarshalledData = util.Marshaller.unmarshal(marshalledData);
+            String unmarshalledData = utils.Marshaller.unmarshal(marshalledData);
 
             String[] messageParts = unmarshalledData.split(":");
 

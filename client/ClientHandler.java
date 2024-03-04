@@ -3,6 +3,8 @@ package client;
 import java.io.*;
 import java.net.*;
 
+import utils.ConsoleUI;
+
 public class ClientHandler {
 
     private static final int SERVER_PORT = 12345;
@@ -34,7 +36,7 @@ public class ClientHandler {
         try {
 
             // Marshal the data into a byte array
-            byte[] marshalledData = util.Marshaller.marshal(message);
+            byte[] marshalledData = utils.Marshaller.marshal(message);
 
             // Convert into data packet
             DatagramPacket packet = new DatagramPacket(marshalledData, marshalledData.length, serverAddress, SERVER_PORT);
@@ -47,7 +49,7 @@ public class ClientHandler {
         }
     }
 
-    public String receiveOverUDP() {
+    public boolean receiveOverUDP() {
         String unmarshalledData = "";
         try {
 
@@ -57,13 +59,19 @@ public class ClientHandler {
 
             // Unmarshal the data into a String
             byte[] marshalledData = receivePacket.getData();
-            unmarshalledData = util.Marshaller.unmarshal(marshalledData);
-            System.out.println("data: " + unmarshalledData);
+            unmarshalledData = utils.Marshaller.unmarshal(marshalledData);
+
+            // ConsoleUI.displayBox("File content: " + unmarshalledData);
+
+            ConsoleUI.displaySeparator('=', 30);
+            System.out.println("File content: " + unmarshalledData);
+            ConsoleUI.displaySeparator('=', 30);
+            return true;
         }
         catch (Exception e) {
             e.printStackTrace();
         }
-        return unmarshalledData;
+        return false;
     }
 
 }

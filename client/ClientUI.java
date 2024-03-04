@@ -1,59 +1,58 @@
 package client;
 
-import java.util.Scanner;
+import utils.InputGetter;
 
 public class ClientUI {
 
     private String serverIP;
     public ClientHandler clientHandler = new ClientHandler();
-    public boolean isRunning = false;
+    public InputGetter ig = new InputGetter();
     public boolean isConnected = false;
 
+    public void startClient() {
+        int choice;
 
-    public boolean startClient() {
-        Scanner scanner = new Scanner(System.in);
-        this.isRunning = true;
+        do {
+            System.out.println("+---------------------------------------+");
+            System.out.println("|               Welcome!                |");
+            System.out.println("+---------------------------------------+");
+            System.out.println("| [1] Connect to a server               |");
+            System.out.println("| [2] Exit                              |");
+            System.out.println("+---------------------------------------+");
+            System.out.print("\nEnter your choice: ");
 
-        while (isRunning) {
-            System.out.println("\nSelect an option:");
-            System.out.println("1. Connect to a server");
-            System.out.println("2. Exit");
-            System.out.print("Enter your choice: ");
-
-            int choice = scanner.nextInt();
+            choice = ig.getInt();
 
             switch (choice) {
                 case 1:
                     renderServerIP();
-                    return true;
+                    break;
                 case 2:
                     System.out.println("Exiting...");
-                    this.isRunning = false;
                     System.exit(0);
-                    return false;
+                    break;
                 default:
                     System.out.println("Invalid choice. Please try again.");
+                    break;
             }
-        }
-        scanner.close();
-        return true;
+        } while (choice != 2);
     }
 
     public void startServices() {
-        Scanner scanner = new Scanner(System.in);
-        boolean isRunning = true;
-
-        while (isRunning) {
-            System.out.println("\nSelect a service:");
-            System.out.println("1. Read a content from a file");
-            System.out.println("2. Insert a content into a file");
-            System.out.println("3. Monitor updates of a file");
-            System.out.println("4. Idempotent service");
-            System.out.println("5. Non-idempotent service");
-            System.out.println("6. Exit");
-            System.out.print("Enter your choice: ");
-
-            int choice = scanner.nextInt();
+        int choice;
+        do {
+            System.out.println("+---------------------------------------+");
+            System.out.println("|             Service Menu              |");
+            System.out.println("+---------------------------------------+");
+            System.out.println("| [1] Read a content from a file        |");
+            System.out.println("| [2] Insert a content into a file      |");
+            System.out.println("| [3] Monitor updates of a file         |");
+            System.out.println("| [4] Idempotent service                |");
+            System.out.println("| [5] Non-idempotent service            |");
+            System.out.println("| [6] Exit                              |");
+            System.out.println("+---------------------------------------+");
+            System.out.print("\nEnter your choice: ");
+            choice = ig.getInt();
 
             switch (choice) {
                 case 1:
@@ -73,25 +72,23 @@ public class ClientUI {
                     break;
                 case 6:
                     System.out.println("Exiting...");
-                    isRunning = false;
                     System.exit(0);
                     break;
                 default:
                     System.out.println("Invalid choice. Please try again.");
+                    break;
             }
-            scanner.close();
-        }
+        } while (choice != 6);
     }
 
     private void renderServerIP() {
-        Scanner scanner = new Scanner(System.in);
 
         System.out.print("\nEnter the IP address of the server: ");
-        this.serverIP = scanner.nextLine();
+        this.serverIP = ig.getString();
 
         System.out.println("You have selected to connect to " + this.serverIP);
         this.startConnection();
-        scanner.close();
+
     }
 
     public String getServerIP() {
@@ -102,105 +99,61 @@ public class ClientUI {
     public void startConnection() {
         try {
             this.isConnected = this.clientHandler.connectToServer(this.serverIP);
-            System.out.println("\nYou have successfully connected to " + this.serverIP + " !");
+            System.out.println("\nYou have successfully connected to " + this.serverIP + "!");
             this.startServices();
         }
         catch (Exception e) {
             // Return to main page
             System.out.println("\nConnection to " + this.serverIP + " failed. Please try again.");
-            this.startClient();
         }
     }
 
     private void startRead(int messageHeader) {
-        Scanner scanner = new Scanner(System.in);
         String message;
+        boolean received = false;
 
         System.out.print("\nEnter the pathname of the file: ");
-        String pathname = scanner.nextLine();
+        String pathname = ig.getString();
 
         System.out.print("Enter the offset of the file content (in bytes) to read from: ");
-        long offset = scanner.nextLong();
+        long offset = ig.getLong();
 
         System.out.print("Enter the number of bytes to read: ");
-        int bytesToRead = scanner.nextInt();
+        int bytesToRead = ig.getInt();
 
         System.out.println("You have selected to read " + bytesToRead + " bytes from " + pathname + " starting from byte " + offset + ".");
         message = messageHeader + ":" + pathname + ":" + offset + ":" + bytesToRead;
 
-        scanner.close();
+        // Send requeest
         this.clientHandler.sendOverUDP(message);
-        while (this.isConnected) {
-            this.clientHandler.receiveOverUDP();
+
+        // Receive response
+        while (!received) {
+            received = this.clientHandler.receiveOverUDP();
         }
-
-
     }
 
     private void startInsert(int messageHeader) {
-        Scanner scanner = new Scanner(System.in);
 
         System.out.print("\nEnter the pathname of the file: ");
-        String pathname = scanner.nextLine();
 
         System.out.print("Enter the offset of the file content (in bytes) to insert into: ");
-        int offset = scanner.nextInt();
 
         System.out.print("Enter the number of bytes to insert: ");
-        int bytes = scanner.nextInt();
 
-        System.out.println("You have selected to insert " + bytes + " bytes into " + pathname + " starting from byte " + offset + ".");
-        scanner.close();
+        // System.out.println("You have selected to insert " + bytes + " bytes into " + pathname + " starting from byte " + offset + ".");
     }
 
     private void startMonitor(int messageHeader) {
-        Scanner scanner = new Scanner(System.in);
 
-        System.out.print("\nEnter first number: ");
-        double num1 = scanner.nextDouble();
-
-        System.out.print("Enter second number: ");
-        double num2 = scanner.nextDouble();
-
-        double result = num1 * num2;
-        System.out.println("Result of multiplication: " + result);
-        scanner.close();
     }
 
     private void startIdempotent(int messageHeader) {
-        Scanner scanner = new Scanner(System.in);
 
-        System.out.print("\nEnter numerator: ");
-        double numerator = scanner.nextDouble();
-
-        System.out.print("Enter denominator: ");
-        double denominator = scanner.nextDouble();
-
-        if (denominator != 0) {
-            double result = numerator / denominator;
-            System.out.println("Result of division: " + result);
-        } else {
-            System.out.println("Cannot divide by zero.");
-        }
-        scanner.close();
     }
 
     private void startNonIdempotent(int messageHeader) {
-        Scanner scanner = new Scanner(System.in);
 
-        System.out.print("\nEnter numerator: ");
-        double numerator = scanner.nextDouble();
-
-        System.out.print("Enter denominator: ");
-        double denominator = scanner.nextDouble();
-
-        if (denominator != 0) {
-            double result = numerator / denominator;
-            System.out.println("Result of division: " + result);
-        } else {
-            System.out.println("Cannot divide by zero.");
-        }
-        scanner.close();
     }
 }
 
