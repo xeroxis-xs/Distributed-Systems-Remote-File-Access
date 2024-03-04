@@ -128,8 +128,12 @@ public class ClientUI {
         System.out.println("You have selected to read " + bytesToRead + " bytes from " + pathname + " starting from byte " + offset + ".");
         message = messageHeader + ":" + pathname + ":" + offset + ":" + bytesToRead;
 
-        this.clientHandler.sendOverUDP(message);
         scanner.close();
+        this.clientHandler.sendOverUDP(message);
+        while (this.isConnected) {
+            this.clientHandler.receiveOverUDP();
+        }
+
 
     }
 

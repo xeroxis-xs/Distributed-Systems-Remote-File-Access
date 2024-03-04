@@ -8,11 +8,11 @@ public class Client {
         ClientUI ui = new ClientUI();
         ui.startClient();
 
-        while (ui.isRunning) {
-            while (ui.isConnected) {
-                ui.clientHandler.receiveOverUDP();
-            }
-        }
+        // while (ui.isRunning) {
+        //     while (ui.isConnected) {
+        //         ui.clientHandler.receiveOverUDP();
+        //     }
+        // }
 
     }
 
