@@ -5,11 +5,14 @@ import java.util.Scanner;
 public class ClientUI {
 
     private String serverIP;
-    private ClientHandler clientHandler = new ClientHandler();
+    public ClientHandler clientHandler = new ClientHandler();
+    public boolean isRunning = false;
+    public boolean isConnected = false;
+
 
     public boolean startClient() {
         Scanner scanner = new Scanner(System.in);
-        boolean isRunning = true;
+        this.isRunning = true;
 
         while (isRunning) {
             System.out.println("\nSelect an option:");
@@ -25,7 +28,7 @@ public class ClientUI {
                     return true;
                 case 2:
                     System.out.println("Exiting...");
-                    isRunning = false;
+                    this.isRunning = false;
                     System.exit(0);
                     return false;
                 default:
@@ -76,9 +79,8 @@ public class ClientUI {
                 default:
                     System.out.println("Invalid choice. Please try again.");
             }
+            scanner.close();
         }
-
-        scanner.close();
     }
 
     private void renderServerIP() {
@@ -99,37 +101,39 @@ public class ClientUI {
 
     public void startConnection() {
         try {
-            this.clientHandler.connectToServer(this.serverIP);
+            this.isConnected = this.clientHandler.connectToServer(this.serverIP);
             System.out.println("\nYou have successfully connected to " + this.serverIP + " !");
             this.startServices();
         }
         catch (Exception e) {
+            // Return to main page
             System.out.println("\nConnection to " + this.serverIP + " failed. Please try again.");
             this.startClient();
         }
     }
 
-    private void startRead(int requestType) {
+    private void startRead(int messageHeader) {
         Scanner scanner = new Scanner(System.in);
-        String msg;
+        String message;
 
         System.out.print("\nEnter the pathname of the file: ");
         String pathname = scanner.nextLine();
 
         System.out.print("Enter the offset of the file content (in bytes) to read from: ");
-        long offset = scanner.nextInt();
+        long offset = scanner.nextLong();
 
         System.out.print("Enter the number of bytes to read: ");
-        int bytes = scanner.nextInt();
+        int bytesToRead = scanner.nextInt();
 
-        System.out.println("You have selected to read " + bytes + " bytes from " + pathname + " starting from byte " + offset + ".");
-        msg = pathname + ":" + offset + ":" + bytes;
+        System.out.println("You have selected to read " + bytesToRead + " bytes from " + pathname + " starting from byte " + offset + ".");
+        message = messageHeader + ":" + pathname + ":" + offset + ":" + bytesToRead;
 
-        this.clientHandler.sendOverUDP(requestType, msg);
+        this.clientHandler.sendOverUDP(message);
         scanner.close();
+
     }
 
-    private void startInsert(int requestType) {
+    private void startInsert(int messageHeader) {
         Scanner scanner = new Scanner(System.in);
 
         System.out.print("\nEnter the pathname of the file: ");
@@ -145,7 +149,7 @@ public class ClientUI {
         scanner.close();
     }
 
-    private void startMonitor(int requestType) {
+    private void startMonitor(int messageHeader) {
         Scanner scanner = new Scanner(System.in);
 
         System.out.print("\nEnter first number: ");
@@ -159,7 +163,7 @@ public class ClientUI {
         scanner.close();
     }
 
-    private void startIdempotent(int requestType) {
+    private void startIdempotent(int messageHeader) {
         Scanner scanner = new Scanner(System.in);
 
         System.out.print("\nEnter numerator: ");
@@ -177,7 +181,7 @@ public class ClientUI {
         scanner.close();
     }
 
-    private void startNonIdempotent(int requestType) {
+    private void startNonIdempotent(int messageHeader) {
         Scanner scanner = new Scanner(System.in);
 
         System.out.print("\nEnter numerator: ");

@@ -8,71 +8,62 @@ public class ClientHandler {
     private static final int SERVER_PORT = 12345;
     private static final int BUFFER_SIZE = 1024;
     private InetAddress serverAddress;
+    private DatagramSocket socket;
 
-    // public Handler(String serverIP) {
-    //     try {
-    //         this.serverAddress = InetAddress.getByName(serverIP);
-    //     }
-    //     catch (Exception e) {
-    //         e.printStackTrace();
-    //     }
-        
-    // }
 
-    public void connectToServer(String serverIP) throws Exception {
+    public boolean connectToServer(String serverIP) throws Exception {
         try {
             this.serverAddress = InetAddress.getByName(serverIP);
+            // Open UDP Socket
+            this.socket = new DatagramSocket();
+            return true;
         }
         catch (IOException e) {
             e.printStackTrace();
             throw e;
         }
+
     }
 
-    public void sendOverUDP(int number, String message) {
+    public void disconnect() {
+        // Close UDP Socket
+        this.socket.close();
+    }
+
+    public void sendOverUDP(String message) {
         try {
-            
-            // Open UDP Socket
-            DatagramSocket socket = new DatagramSocket();
 
             // Marshal the data into a byte array
-            byte[] marshalledData = util.Marshaller.marshal(number, message);
+            byte[] marshalledData = util.Marshaller.marshal(message);
 
             // Convert into data packet
             DatagramPacket packet = new DatagramPacket(marshalledData, marshalledData.length, serverAddress, SERVER_PORT);
 
             // Send over UDP
-            socket.send(packet);
-
-            // Close UDP Socket
-            socket.close();
+            this.socket.send(packet);
         }
         catch (IOException e) {
             e.printStackTrace();
         }
     }
 
-    public void receiveOverUDP(int number, String message) {
+    public String receiveOverUDP() {
+        String unmarshalledData = "";
         try {
-            
-            // Open UDP Socket
-            DatagramSocket socket = new DatagramSocket();
 
-            // Marshal the data into a byte array
-            byte[] marshalledData = util.Marshaller.marshal(number, message);
+            byte[] receiveData = new byte[BUFFER_SIZE];
+            DatagramPacket receivePacket = new DatagramPacket(receiveData, receiveData.length);
+            this.socket.receive(receivePacket);
 
-            // Convert into data packet
-            DatagramPacket packet = new DatagramPacket(marshalledData, marshalledData.length, serverAddress, SERVER_PORT);
-
-            // Send over UDP
-            socket.send(packet);
-
-            // Close UDP Socket
-            socket.close();
+            // Unmarshal the data into a String
+            byte[] marshalledData = receivePacket.getData();
+            unmarshalledData = util.Marshaller.unmarshal(marshalledData);
+            System.out.println("data: " + unmarshalledData);
         }
-        catch (IOException e) {
+        catch (Exception e) {
             e.printStackTrace();
         }
+        return unmarshalledData;
     }
-    
+
 }
