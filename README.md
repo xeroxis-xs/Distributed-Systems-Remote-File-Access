@@ -3,8 +3,8 @@
 From project directory run:
 
 ```shell
-javac server/FileServer.java
-java server.FileServer
+javac server/Server.java
+java server.Server
 ```
 
 ### Client
@@ -12,6 +12,6 @@ java server.FileServer
 From project directory run:
 
 ```shell
-javac client/FileClient.java
-java client.FileClient 127.0.0.1 hello.txt
+javac client/Client.java
+java client.Client
 ```
