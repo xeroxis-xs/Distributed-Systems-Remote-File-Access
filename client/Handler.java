@@ -2,29 +2,48 @@ package client;
 
 import java.io.*;
 import java.net.*;
+import java.util.UUID;
 
 import utils.ConsoleUI;
 
-public class ClientHandler {
+public class Handler {
 
-    private static final int SERVER_PORT = 12345;
     private static final int BUFFER_SIZE = 1024;
-    private InetAddress serverAddress;
+    private InetSocketAddress serverAddress;
     private DatagramSocket socket;
+    private String requestId;
 
 
-    public boolean connectToServer(String serverIP) throws Exception {
+    public void connectToServer(String serverAddress, int serverPort) throws Exception {
         try {
-            this.serverAddress = InetAddress.getByName(serverIP);
+            // Connect to Server
+            this.serverAddress = new InetSocketAddress(serverAddress, serverPort);
+            System.out.println("\nSuccessfully connected to " + serverAddress + ":" + serverPort);
+        }
+        catch (Exception e) {
+            e.printStackTrace();
+            throw e;
+        }
+    }
+
+    public void openPort(int clientPort) throws Exception {
+        try {
             // Open UDP Socket
             this.socket = new DatagramSocket();
-            return true;
+            System.out.println("Client port listening at " + clientPort);
         }
         catch (IOException e) {
             e.printStackTrace();
             throw e;
         }
+    }
 
+    public String getClientAddress() {
+        InetAddress clInetAddress = InetAddress.getLocalHost();
+    }
+
+    public void generateRequestId() {
+        this.requestId = UUID.randomUUID().toString().substring(0,8);
     }
 
     public void disconnect() {
@@ -39,10 +58,10 @@ public class ClientHandler {
             byte[] marshalledData = utils.Marshaller.marshal(message);
 
             // Convert into data packet
-            DatagramPacket packet = new DatagramPacket(marshalledData, marshalledData.length, serverAddress, SERVER_PORT);
+            DatagramPacket requestPacket = new DatagramPacket(marshalledData, marshalledData.length, serverAddress);
 
             // Send over UDP
-            this.socket.send(packet);
+            this.socket.send(requestPacket);
         }
         catch (IOException e) {
             e.printStackTrace();
