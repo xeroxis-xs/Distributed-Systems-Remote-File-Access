@@ -14,6 +14,7 @@ import utils.ConsoleUI;
 public class Handler {
 
     private static final int BUFFER_SIZE = 1024;
+    private double packetLossProb = 0.9;
     private InetSocketAddress serverAddress;
     private String clientAddress;
     private int clientPort;
@@ -128,6 +129,11 @@ public class Handler {
                 // ConsoleUI.displaySeparator('=', 30);
                 // System.out.println("Raw Message from Server: " + unmarshalledData);
                 // ConsoleUI.displaySeparator('=', 30);
+
+                if (Math.random() < packetLossProb){
+                    System.out.println("*** Simulating receiving message loss from server ***");
+                    continue;
+                }
 
                 break;
             }

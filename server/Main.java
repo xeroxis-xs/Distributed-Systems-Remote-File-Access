@@ -16,7 +16,6 @@ public class Main {
         // }
 
         boolean atLeastOnce = true;
-        double packetLossProb = 0;
         int serverPort = 12345;
 
 		if (args.length > 0) {
