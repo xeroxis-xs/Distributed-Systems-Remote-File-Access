@@ -1,6 +1,7 @@
 package client;
 
 import utils.InputGetter;
+import utils.ConsoleUI;
 
 public class Client {
 
@@ -54,31 +55,33 @@ public class Client {
             System.out.println("+---------------------------------------+");
             System.out.println("|    Welcome to Remote File Service!    |");
             System.out.println("+---------------------------------------+");
+            System.out.println("|                                       |");
             System.out.println("| [1] Read a content from a file        |");
             System.out.println("| [2] Insert a content into a file      |");
             System.out.println("| [3] Monitor updates of a file         |");
             System.out.println("| [4] Idempotent service                |");
             System.out.println("| [5] Non-idempotent service            |");
             System.out.println("| [6] Exit                              |");
+            System.out.println("|                                       |");
             System.out.println("+---------------------------------------+");
             System.out.print("\nEnter your choice: ");
             choice = ig.getInt();
 
             switch (choice) {
                 case 1:
-                    startRead("read");
+                    startRead("1");
                     break;
                 case 2:
-                    startInsert("insert");
+                    startInsert("2");
                     break;
                 case 3:
-                    startMonitor("monitor");
+                    startMonitor("3");
                     break;
                 case 4:
-                    startIdempotent("idempotent");
+                    startIdempotent("4");
                     break;
                 case 5:
-                    startNonIdempotent("nonidempotent");
+                    startNonIdempotent("5");
                     break;
                 case 6:
                     System.out.println("Exiting...");
@@ -176,34 +179,57 @@ public class Client {
         String replyCounter = messageParts[1];
         String serverAddress = messageParts[2];
         String serverPort = messageParts[3];
-        String requestType = messageParts[4];
+        String replyType = messageParts[4];
         String replyContents = concatenateFromIndex(messageParts, 5, ":");
 
-        System.out.print("\nmessageType: " + messageType);
-        System.out.print("\nreplyCounter: " + replyCounter);
-        System.out.print("\nserverAddress: " + serverAddress);
-        System.out.print("\nserverPort: " + serverPort);
-        System.out.print("\nreplyType: " + requestType);
-        System.out.print("\nreplyContents: " + replyContents);
+        // System.out.print("\nmessageType: " + messageType);
+        // System.out.print("\nreplyCounter: " + replyCounter);
+        // System.out.print("\nserverAddress: " + serverAddress);
+        // System.out.print("\nserverPort: " + serverPort);
+        // System.out.print("\nreplyType: " + replyType);
+        // System.out.print("\nreplyContents: " + replyContents);
+
+        ConsoleUI.displaySeparator('=', 40);
+        switch (replyType) {
+            case "1":
+                System.out.println("Request successful: " + replyContents);
+                break;
+            case "1e1":
+                System.out.println("Request failed: " + replyContents);
+                break;
+            case "1e2":
+                System.out.println("Request failed: " + replyContents);
+                break;
+            case "1e3":
+                System.out.println("Request failed: " + replyContents);
+                break;
+            case "1e4":
+                System.out.println("Request failed: " + replyContents);
+                break;
+            default:
+                System.out.println("Request failed: " + replyContents);
+                break;
+        }
+        ConsoleUI.displaySeparator('=', 40);
     }
 
     public String concatenateFromIndex(String[] elements, int startIndex, String delimiter) {
         StringBuilder stringBuilder = new StringBuilder();
-    
+
         // Iterate through the elements starting from the startIndex
         for (int i = startIndex; i < elements.length; i++) {
             // Append the current element
             stringBuilder.append(elements[i]);
-    
+
             // Append delimiter if not the last element
             if (i < elements.length - 1) {
                 stringBuilder.append(delimiter);
             }
         }
-    
+
         // Convert StringBuilder to String and return
         return stringBuilder.toString();
     }
-    
+
 }
 

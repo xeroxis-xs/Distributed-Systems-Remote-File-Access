@@ -7,7 +7,7 @@ import java.net.InetAddress;
 import java.net.SocketTimeoutException;
 import java.net.UnknownHostException;
 import java.net.InetSocketAddress;
-import java.util.concurrent.atomic.AtomicInteger; 
+import java.util.concurrent.atomic.AtomicInteger;
 
 import utils.ConsoleUI;
 
@@ -19,7 +19,6 @@ public class Handler {
     private int clientPort;
     private DatagramSocket socket;
     private AtomicInteger requestIdCounter = new AtomicInteger(0);
-    private boolean received;
 
     public Handler() {
         this.clientAddress = this.getClientAddress();
@@ -87,21 +86,10 @@ public class Handler {
 
             // Send over UDP
             this.socket.send(requestPacket);
-            this.received = false;
 
-            // Prepare a byte buffer to store received data
-            byte[] buffer = new byte[BUFFER_SIZE];
+            // receive iover UDP
+            unmarshalledData = this.receiveOverUDP(requestPacket);
 
-            // Create a DatagramPacket for receiving data
-            DatagramPacket receivePacket = new DatagramPacket(buffer, buffer.length);
-
-            // Set timeout for 5 seconds
-            this.socket.setSoTimeout(5000); 
-
-            while(!received) {
-                // Receive datagram packet over UDP
-                unmarshalledData = this.receiveOverUDP(receivePacket, requestPacket);
-            }
         }
         catch (IOException e) {
             System.out.println("\nAn IO error occurred: " + e.getMessage());
@@ -110,38 +98,61 @@ public class Handler {
     }
 
 
-    public String receiveOverUDP(DatagramPacket receivePacket, DatagramPacket requestPacket) {
+    public String receiveOverUDP(DatagramPacket requestPacket) {
+
         String unmarshalledData = null;
-        try {
-            // Receive data from server over UDP
-            this.socket.receive(receivePacket);
+        // boolean received = false;
+        int maxRetries = 3;
+        int timeout = 5000;
 
-            // Unmarshal the data into a String
-            byte[] marshalledData = receivePacket.getData();
-            unmarshalledData = utils.Marshaller.unmarshal(marshalledData);
+        // Prepare a byte buffer to store received data
+        byte[] buffer = new byte[BUFFER_SIZE];
 
-            ConsoleUI.displaySeparator('=', 30);
-            System.out.println("Raw Message from Server: " + unmarshalledData);
-            ConsoleUI.displaySeparator('=', 30);
-        }
-        catch (SocketTimeoutException e) {
-            System.out.println("\nTimeout occurred while waiting for response from server.");
-            System.out.println("Retransmitting request to server.");
+        // Create a DatagramPacket for receiving data
+        DatagramPacket receivePacket = new DatagramPacket(buffer, buffer.length);
+
+
+        int retries = 0;
+        while (retries < maxRetries) {
             try {
-                // Resending
-                this.socket.send(requestPacket);
+                // Set timeout for 5 seconds
+                this.socket.setSoTimeout(timeout);
+
+                // Receive data from server over UDP
+                this.socket.receive(receivePacket);
+
+                // Unmarshal the data into a String
+                byte[] marshalledData = receivePacket.getData();
+                unmarshalledData = utils.Marshaller.unmarshal(marshalledData);
+
+                // ConsoleUI.displaySeparator('=', 30);
+                // System.out.println("Raw Message from Server: " + unmarshalledData);
+                // ConsoleUI.displaySeparator('=', 30);
+
+                break;
             }
-            catch (IOException ioe) {
-                System.out.println("\nError retransmitting. Exiting... ");
-                System.out.println("An IO error occurred: " + ioe.getMessage());
-                System.exit(1);
+            catch (SocketTimeoutException e) {
+                retries++;
+                System.out.println("\nTimeout occurred while waiting for response from server.");
+                System.out.println("Retransmitting request to server. Retry (" + retries + ")");
+
+                try {
+                    // Resending
+                    this.socket.send(requestPacket);
+                }
+                catch (IOException ioe) {
+                    System.out.println("\nError retransmitting. Exiting... ");
+                    System.out.println("An IO error occurred: " + ioe.getMessage());
+                    System.exit(1);
+                }
+            }
+            catch (IOException e) {
+                System.out.println("\nAn IO error occurred: " + e.getMessage());
             }
         }
-        catch (IOException e) {
-            System.out.println("\nAn IO error occurred: " + e.getMessage());
-        }
+
         return unmarshalledData;
-        
+
     }
 
 }

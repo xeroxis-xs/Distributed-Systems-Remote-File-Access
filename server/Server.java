@@ -2,15 +2,10 @@ package server;
 
 import java.io.*;
 import java.net.DatagramPacket;
-import java.net.DatagramSocket;
 import java.net.InetAddress;
-import java.util.Arrays;
 
 public class Server {
     private int BUFFER_SIZE = 1024;
-    private DatagramSocket socket;
-    private InetAddress clientAddress;
-    private int clientPort;
     public Handler handler = new Handler();
 
     public Server() {
@@ -29,55 +24,60 @@ public class Server {
 
         while (true) {
             // Receive datagram packet over UDP
-            String unmarshalledData = this.handler.receiveOverUDP(receivePacket);
-            processRequest(unmarshalledData);
+            Object[] result = this.handler.receiveOverUDP(receivePacket);
+
+            InetAddress clientAddress = (InetAddress) result[0];
+            int clientPort = (int) result[1];
+            String unmarshalledData = (String) result[2];
+
+            processRequest(clientAddress, clientPort, unmarshalledData);
         }
     }
 
-    public void processRequest(String unmarshalledData) {
+    public void processRequest(InetAddress clientAddress, int clientPort, String unmarshalledData) {
 
         String[] messageParts = unmarshalledData.split(":");
         String messageType = messageParts[0]; // 0 is request; 1 is reply
         String requestCounter = messageParts[1];
-        String clientAddress = messageParts[2];
-        String clientPort = messageParts[3];
+        // String clientAddress = messageParts[2];
+        // String clientPort = messageParts[3];
         String requestType = messageParts[4];
         String requestContents = concatenateFromIndex(messageParts, 5, ":");
-        
-        System.out.println("\nmessageType: " + messageType);
-        System.out.println("requestCounter: " + requestCounter);
-        System.out.println("clientAddress: " + clientAddress);
-        System.out.println("clientPort: " + clientPort);
-        System.out.println("requestType: " + requestType);
-        System.out.println("requestContents: " + requestContents);
+
+        // System.out.println("\nmessageType: " + messageType);
+        // System.out.println("requestCounter: " + requestCounter);
+        // System.out.println("clientAddress: " + clientAddress);
+        // System.out.println("clientPort: " + clientPort);
+        // System.out.println("requestType: " + requestType);
+        // System.out.println("requestContents: " + requestContents);
 
         switch (requestType) {
-            case "read":
-                System.out.println("Server: Request to read a content from a file");
-                startRead(requestContents);
+            case "1":
+                System.out.println("Server: Client request to read a content from a file");
+                startRead(clientAddress, clientPort, requestContents);
                 break;
-            case "insert":
-                System.out.println("Server: Request to insert a content into a file");
-                startInsert(requestContents);
+            case "2":
+                System.out.println("Server: Client request to insert a content into a file");
+                startInsert(clientAddress, clientPort, requestContents);
                 break;
-            case "monitor":
-                System.out.println("Server: Request to monitor updates of a file");
-                startMonitor(requestContents);
+            case "3":
+                System.out.println("Server: Client request to monitor updates of a file");
+                startMonitor(clientAddress, clientPort, requestContents);
                 break;
-            case "idempotent":
-                System.out.println("Server: Request for idempotent service");
-                startIdempotent(requestContents);
+            case "4":
+                System.out.println("Server: Client request for idempotent service");
+                startIdempotent(clientAddress, clientPort, requestContents);
                 break;
-            case "nonidempotent":
-                System.out.println("Server: Request for non-idempotent service");
-                startNonIdempotent(requestContents);
+            case "5":
+                System.out.println("Server: Client request for non-idempotent service");
+                startNonIdempotent(clientAddress, clientPort, requestContents);
                 break;
             default:
                 System.out.println("Server: Invalid request type.");
         }
     }
 
-    private void startRead(String requestContents) {
+    private void startRead(InetAddress clientAddress, int clientPort, String requestContents) {
         String[] requestContentsParts = requestContents.split(":");
         String filePath = requestContentsParts[0];
         long offset = Long.parseLong(requestContentsParts[1]);
@@ -93,44 +93,62 @@ public class Server {
         if (file.exists()) {
             System.out.println("Server: File found!");
             try (RandomAccessFile raf = new RandomAccessFile(file, "r")) {
-                // Set the file pointer to the specified offset
-                raf.seek(offset);
 
-                // Read the specified number of bytes
-                byte[] buffer = new byte[bytesToRead];
-                int bytesRead = raf.read(buffer);
+                // Check if offset is valid
+                if (offset < 0 || offset >= raf.length()) {
+                    System.err.println("Server: Error: Invalid offset");
+                    content = "1e2:Invalid byte offset. Please try again.";
+                }
+                // Check if number of bytes is valid
+                else if (bytesToRead <= 0 || offset + bytesToRead > raf.length()) {
+                    System.err.println("Server: Error: Invalid number of bytes");
+                    content = "1e3:Invalid byte offset. Please try again.";
+                }
+                // No issue
+                else {
+                    // Set the file pointer to the specified offset
+                    raf.seek(offset);
 
-                // Convert the bytes to a String
-                content = new String(buffer, 0, bytesRead);
-                System.out.println("Server: File content: " + content);
+                    // Read the specified number of bytes
+                    byte[] buffer = new byte[bytesToRead];
+                    int bytesRead = raf.read(buffer);
+
+                    // Convert the bytes to a String
+                    content = new String(buffer, 0, bytesRead);
+                    System.out.println("Server: File content: " + content);
+                    content = "1:" + content;
+                }
             }
             catch (IOException e) {
-                System.out.println("Server: Error reading file!");
+                System.out.println("Server: Error: Error reading file!");
+                content = "1e4:Error reading file. Please try again.";
                 e.printStackTrace();
             }
-        } else {
-            System.out.println("Server: File not found!");
-            content = "File not found";
         }
-        this.handler.sendOverUDP(content);
+        else {
+            System.out.println("Server: File not found!");
+            content = "1e1:File not found. Please try again.";
+        }
+        // Send the file content to client
+        this.handler.sendOverUDP(clientAddress, clientPort, content);
     }
 
-    private byte[]  startInsert(String requestContents) {
+    private byte[]  startInsert(InetAddress clientAddress, int clientPort, String requestContents) {
         byte[] replyData = new byte[0];
         return replyData;
     }
 
-    private byte[] startMonitor(String requestContents) {
+    private byte[] startMonitor(InetAddress clientAddress, int clientPort, String requestContents) {
         byte[] replyData = new byte[0];
         return replyData;
     }
 
-    private byte[] startIdempotent(String requestContents) {
+    private byte[] startIdempotent(InetAddress clientAddress, int clientPort, String requestContents) {
         byte[] replyData = new byte[0];
         return replyData;
     }
 
-    private byte[] startNonIdempotent(String requestContents) {
+    private byte[] startNonIdempotent(InetAddress clientAddress, int clientPort, String requestContents) {
         byte[] replyData = new byte[0];
         return replyData;
     }
@@ -180,21 +198,21 @@ public class Server {
 
     public String concatenateFromIndex(String[] elements, int startIndex, String delimiter) {
         StringBuilder stringBuilder = new StringBuilder();
-    
+
         // Iterate through the elements starting from the startIndex
         for (int i = startIndex; i < elements.length; i++) {
             // Append the current element
             stringBuilder.append(elements[i]);
-    
+
             // Append delimiter if not the last element
             if (i < elements.length - 1) {
                 stringBuilder.append(delimiter);
             }
         }
-    
+
         // Convert StringBuilder to String and return
         return stringBuilder.toString();
     }
-    
+
 
 }
