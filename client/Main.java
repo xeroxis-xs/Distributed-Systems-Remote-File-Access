@@ -14,15 +14,18 @@ public class Main {
 				if (args.length == 1) {
 					clientPort = Integer.parseInt(args[0]);
 				}
-				if (args.length == 2) {
+				else if (args.length == 2) {
 					clientPort = Integer.parseInt(args[0]);
 					serverAddress = args[1];
 				}
-				if (args.length == 3) {
+				else if (args.length == 3) {
 					clientPort = Integer.parseInt(args[0]);
 					serverAddress = args[1];
 					serverPort = Integer.parseInt(args[2]);
-
+				}
+				else {
+					System.err.println("Invalid arguments. Please try again.");
+					System.exit(1);
 				}
 			} catch (Exception e) {
 				System.err.println("Invalid arguments. Please try again.");

@@ -8,7 +8,6 @@ public class Client {
     private String serverAddress;
     private int serverPort;
 
-    // private String serverIP;
     public Handler handler = new Handler();
     public InputGetter ig = new InputGetter();
     public boolean isConnected = false;
@@ -67,19 +66,19 @@ public class Client {
 
             switch (choice) {
                 case 1:
-                    startRead(1);
+                    startRead("read");
                     break;
                 case 2:
-                    startInsert(2);
+                    startInsert("insert");
                     break;
                 case 3:
-                    startMonitor(3);
+                    startMonitor("monitor");
                     break;
                 case 4:
-                    startIdempotent(4);
+                    startIdempotent("idempotent");
                     break;
                 case 5:
-                    startNonIdempotent(5);
+                    startNonIdempotent("nonidempotent");
                     break;
                 case 6:
                     System.out.println("Exiting...");
@@ -124,9 +123,7 @@ public class Client {
         }
     }
 
-    private void startRead(int messageHeader) {
-        String message;
-        boolean received = false;
+    private void startRead(String requestType) {
 
         System.out.print("\nEnter the pathname of the file: ");
         System.out.print("\nE.g. server/storage/hello.txt\n");
@@ -141,18 +138,16 @@ public class Client {
         int bytesToRead = ig.getInt();
 
         System.out.println("You have selected to read " + bytesToRead + " bytes from " + pathname + " starting from byte " + offset + ".");
-        message = messageHeader + ":" + pathname + ":" + offset + ":" + bytesToRead;
+        String requestContent = requestType + ":" + pathname + ":" + offset + ":" + bytesToRead;
 
-        // Send requeest
-        this.handler.sendOverUDP(message);
+        // Send request and receive reply from server
+        String replyFromServer = this.handler.sendOverUDP(requestContent);
 
-        // Receive response
-        while (!received) {
-            received = this.handler.receiveOverUDP();
-        }
+        // Process reply from server
+        this.processReplyFromServer(replyFromServer);
     }
 
-    private void startInsert(int messageHeader) {
+    private void startInsert(String requestType) {
 
         System.out.print("\nEnter the pathname of the file: ");
 
@@ -163,16 +158,52 @@ public class Client {
         // System.out.println("You have selected to insert " + bytes + " bytes into " + pathname + " starting from byte " + offset + ".");
     }
 
-    private void startMonitor(int messageHeader) {
+    private void startMonitor(String requestType) {
 
     }
 
-    private void startIdempotent(int messageHeader) {
+    private void startIdempotent(String requestType) {
 
     }
 
-    private void startNonIdempotent(int messageHeader) {
+    private void startNonIdempotent(String requestType) {
 
     }
+
+    private void processReplyFromServer(String message) {
+        String[] messageParts = message.split(":");
+        String messageType = messageParts[0]; // 0 is request; 1 is reply
+        String replyCounter = messageParts[1];
+        String serverAddress = messageParts[2];
+        String serverPort = messageParts[3];
+        String requestType = messageParts[4];
+        String replyContents = concatenateFromIndex(messageParts, 5, ":");
+
+        System.out.print("\nmessageType: " + messageType);
+        System.out.print("\nreplyCounter: " + replyCounter);
+        System.out.print("\nserverAddress: " + serverAddress);
+        System.out.print("\nserverPort: " + serverPort);
+        System.out.print("\nreplyType: " + requestType);
+        System.out.print("\nreplyContents: " + replyContents);
+    }
+
+    public String concatenateFromIndex(String[] elements, int startIndex, String delimiter) {
+        StringBuilder stringBuilder = new StringBuilder();
+    
+        // Iterate through the elements starting from the startIndex
+        for (int i = startIndex; i < elements.length; i++) {
+            // Append the current element
+            stringBuilder.append(elements[i]);
+    
+            // Append delimiter if not the last element
+            if (i < elements.length - 1) {
+                stringBuilder.append(delimiter);
+            }
+        }
+    
+        // Convert StringBuilder to String and return
+        return stringBuilder.toString();
+    }
+    
 }
 

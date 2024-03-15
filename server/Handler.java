@@ -1,4 +1,4 @@
-package client;
+package server;
 
 import java.io.IOException;
 import java.net.DatagramPacket;
@@ -7,68 +7,32 @@ import java.net.InetAddress;
 import java.net.SocketTimeoutException;
 import java.net.UnknownHostException;
 import java.net.InetSocketAddress;
-import java.util.concurrent.atomic.AtomicInteger; 
 
 import utils.ConsoleUI;
 
 public class Handler {
-
     private static final int BUFFER_SIZE = 1024;
-    private InetSocketAddress serverAddress;
-    private String clientAddress;
-    private int clientPort;
+    private int serverPort;
     private DatagramSocket socket;
-    private AtomicInteger requestIdCounter = new AtomicInteger(0);
-    private boolean received;
 
     public Handler() {
-        this.clientAddress = this.getClientAddress();
+
     }
 
-    public void connectToServer(String serverAddress, int serverPort) throws Exception {
-        try {
-            // Connect to Server
-            this.serverAddress = new InetSocketAddress(serverAddress, serverPort);
-            System.out.println("\nSuccessfully connected to " + serverAddress + ":" + serverPort);
-        }
-        catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-
-    public void openPort(int clientPort) throws Exception {
+    public void openPort(int serverPort) {
         try {
             // Open UDP Socket
-            this.clientPort = clientPort;
-            this.socket = new DatagramSocket(this.clientPort);
-            System.out.println("Client port listening at " + clientPort);
+            this.serverPort = serverPort;
+            this.socket = new DatagramSocket(this.serverPort);
+            InetAddress localhost = InetAddress.getLocalHost();
+            System.out.println("\nServer: Server started at " + (localhost.getHostAddress()).trim());
+            System.out.println("Server: Port listening at " + serverPort);
+
+            
         }
         catch (IOException e) {
             e.printStackTrace();
         }
-    }
-
-    public String getClientAddress() {
-        String clientAddress = null;
-        try {
-            // Get the address of client
-            InetAddress clientHost = InetAddress.getLocalHost();
-            clientAddress = (clientHost.getHostAddress()).trim();
-        }
-        catch (UnknownHostException e) {
-            System.out.println("\nFailed to get localhost address: " + e.getMessage());
-        }
-        return clientAddress;
-    }
-
-    public String generateRequestId(String clientAddress, int clientPort) {
-        // Generate a unique request Id based on client address and port
-        return this.requestIdCounter.incrementAndGet() + ":" + clientAddress + ":" + clientPort;
-    }
-
-    public void disconnect() {
-        // Close UDP Socket
-        this.socket.close();
     }
 
     public String sendOverUDP(String requestContent) {
@@ -109,8 +73,9 @@ public class Handler {
         return unmarshalledData;
     }
 
+    
 
-    public String receiveOverUDP(DatagramPacket receivePacket, DatagramPacket requestPacket) {
+    public String receiveOverUDP(DatagramPacket receivePacket) {
         String unmarshalledData = null;
         try {
             // Receive data from server over UDP
@@ -121,21 +86,21 @@ public class Handler {
             unmarshalledData = utils.Marshaller.unmarshal(marshalledData);
 
             ConsoleUI.displaySeparator('=', 30);
-            System.out.println("Raw Message from Server: " + unmarshalledData);
+            System.out.println("Raw Message from Client: " + unmarshalledData);
             ConsoleUI.displaySeparator('=', 30);
         }
         catch (SocketTimeoutException e) {
-            System.out.println("\nTimeout occurred while waiting for response from server.");
-            System.out.println("Retransmitting request to server.");
-            try {
-                // Resending
-                this.socket.send(requestPacket);
-            }
-            catch (IOException ioe) {
-                System.out.println("\nError retransmitting. Exiting... ");
-                System.out.println("An IO error occurred: " + ioe.getMessage());
-                System.exit(1);
-            }
+            System.out.println("\nTimeout occurred while waiting for response from client.");
+            System.out.println("Retransmitting reply to client.");
+            // try {
+            //     // Resending
+            //     this.socket.send(requestPacket);
+            // }
+            // catch (IOException ioe) {
+            //     System.out.println("\nSecond retransmission failed. Exiting... ");
+            //     System.out.println("An IO error occurred: " + ioe.getMessage());
+            //     System.exit(1);
+            // }
         }
         catch (IOException e) {
             System.out.println("\nAn IO error occurred: " + e.getMessage());
