@@ -10,39 +10,36 @@ public class InputGetter {
         sc = new Scanner(System.in);
     }
 
-    public float getFloat() {
-        if (sc.hasNextFloat()) {
-            return sc.nextFloat();
-        } else {
-            sc.nextLine();
-            return -1;
-        }
-    }
-
     public int getInt() {
-        if (sc.hasNextInt()) {
-            return sc.nextInt();
-        } else {
-            sc.nextLine();
-            return -1;
-        }
+		try {
+			//DO NOT use nextint because it does not read \n
+			return Integer.parseInt(sc.nextLine());
+		} catch (Exception e) {
+			System.out.println("Invalid input. Please enter an integer");
+			return getInt();
+		}
     }
 
     public long getLong() {
-        if (sc.hasNextLong()) {
-            return sc.nextLong();
-        } else {
-            sc.nextLine();
-            return -1;
-        }
+		try {
+			return Long.parseLong(sc.nextLine());
+		} catch (Exception e) {
+			System.out.println("Invalid input. Please enter an integer");
+			return getLong();
+		}
     }
 
     public String getString() {
-        String output;
-        do {
-            output = sc.nextLine();
-        } while (output.equals(""));
-
-        return output;
+		try {
+			String userInput = sc.nextLine();
+			while (userInput.equals("")) {
+				System.out.println("Empty input. Please try again");
+				userInput = sc.nextLine();
+			}
+			return userInput;
+		} catch (Exception e) {
+			System.out.println("Invalid input. Please try again");
+			return getString();
+		}
     }
 }

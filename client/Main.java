@@ -8,6 +8,9 @@ public class Main {
         String serverAddress = "127.0.0.1";
         int serverPort = 12345;
         int clientPort = 65535;
+		double PACKET_LOSS_PROB = 0.8;
+		int BUFFER_SIZE = 1024;
+		int MAX_RETRIES = 10;
 
 		if (args.length > 0) {
 			try {
@@ -37,7 +40,7 @@ public class Main {
         System.out.println("Initialising: Server port set to " + serverPort);
 
 
-        Client client = new Client(clientPort, serverAddress, serverPort);
+        Client client = new Client(clientPort, serverAddress, serverPort, BUFFER_SIZE, PACKET_LOSS_PROB, MAX_RETRIES);
         client.startConnection();
 
     }

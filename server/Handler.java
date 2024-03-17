@@ -13,7 +13,6 @@ import java.net.InetSocketAddress;
 import utils.ConsoleUI;
 
 public class Handler {
-    private static final int BUFFER_SIZE = 1024;
     private int serverPort;
     private DatagramSocket socket;
     private AtomicInteger requestIdCounter = new AtomicInteger(0);
@@ -28,9 +27,8 @@ public class Handler {
             this.serverPort = serverPort;
             this.socket = new DatagramSocket(this.serverPort);
             InetAddress localhost = InetAddress.getLocalHost();
-            System.out.println("\nServer: Server started at " + (localhost.getHostAddress()).trim());
+            System.out.println("Server: Server started at " + (localhost.getHostAddress()).trim());
             System.out.println("Server: Port listening at " + serverPort);
-
 
         }
         catch (IOException e) {
@@ -101,9 +99,9 @@ public class Handler {
             byte[] marshalledData = receivePacket.getData();
             unmarshalledData = utils.Marshaller.unmarshal(marshalledData);
 
-            ConsoleUI.displaySeparator('=', 30);
+            ConsoleUI.displaySeparator('=', 40);
             System.out.println("Raw Message from Client: " + unmarshalledData);
-            ConsoleUI.displaySeparator('=', 30);
+            ConsoleUI.displaySeparator('=', 40);
         }
         catch (SocketTimeoutException e) {
             System.out.println("\nTimeout occurred while waiting for response from client.");

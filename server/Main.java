@@ -1,22 +1,13 @@
 package server;
 
 public class Main {
-    private static final int PORT = 12345;
-    private static final int BUFFER_SIZE = 1024;
 
     public static void main(String[] args) {
-        // Server server = new Server(serverPort);
-
-        // try {
-        //     while (true) {
-        //         serverHandler.receiveOverUDP();
-        //     }
-        // } catch (Exception e) {
-        //     e.printStackTrace();
-        // }
-
-        boolean atLeastOnce = true;
+        
         int serverPort = 12345;
+        int BUFFER_SIZE = 1024;
+        int HISTORY_SIZE = 100;
+        boolean AT_MOST_ONCE = true;
 
 		if (args.length > 0) {
 			try {
@@ -33,7 +24,15 @@ public class Main {
 			}
 		}
 
-        Server server = new Server();
+        if (AT_MOST_ONCE) {
+            System.out.println("\nServer: Invocation Semantics: At Most Once");
+            System.out.println("Server: History initialised with " + HISTORY_SIZE + " records capacity");
+        } else {
+            System.out.println("\nServer: Invocation Semantics: At Least Once");
+            System.out.println("Server: No history is maintained");
+        }
+
+        Server server = new Server(BUFFER_SIZE, HISTORY_SIZE, AT_MOST_ONCE);
         server.listen(serverPort);
 
     }

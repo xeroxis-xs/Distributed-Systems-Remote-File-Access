@@ -5,16 +5,30 @@ import java.net.DatagramPacket;
 import java.net.InetAddress;
 
 public class Server {
-    private int BUFFER_SIZE = 1024;
-    public Handler handler = new Handler();
+    private int BUFFER_SIZE;
+    private int HISTORY_SIZE;
+    private boolean AT_MOST_ONCE;
+    private Handler handler = new Handler();
+    private History history;
 
-    public Server() {
-
+    // Constructor
+    public Server(int BUFFER_SIZE, int HISTORY_SIZE, boolean AT_MOST_ONCE) {
+        if (AT_MOST_ONCE) {
+            this.BUFFER_SIZE = BUFFER_SIZE;
+            this.HISTORY_SIZE = HISTORY_SIZE;
+            this.AT_MOST_ONCE = AT_MOST_ONCE;
+            this.history = new History(this.HISTORY_SIZE);
+        }
+        else {
+            // At least once, no history
+            this.BUFFER_SIZE = BUFFER_SIZE;
+        }
+        
     }
 
     public void listen(int serverPort) {
         // Open UDP Socket
-        this.handler.openPort(serverPort);
+        handler.openPort(serverPort);
 
         // Prepare a byte buffer to store received data
         byte[] buffer = new byte[BUFFER_SIZE];
@@ -24,7 +38,7 @@ public class Server {
 
         while (true) {
             // Receive datagram packet over UDP
-            Object[] result = this.handler.receiveOverUDP(receivePacket);
+            Object[] result = handler.receiveOverUDP(receivePacket);
 
             InetAddress clientAddress = (InetAddress) result[0];
             int clientPort = (int) result[1];
@@ -34,14 +48,14 @@ public class Server {
         }
     }
 
-    public void processRequest(InetAddress clientAddress, int clientPort, String unmarshalledData) {
+    private void processRequest(InetAddress clientAddress, int clientPort, String unmarshalledData) {
 
         String[] messageParts = unmarshalledData.split(":");
-        String messageType = messageParts[0]; // 0 is request; 1 is reply
-        String requestCounter = messageParts[1];
-        // String clientAddress = messageParts[2];
-        // String clientPort = messageParts[3];
-        String requestType = messageParts[4];
+        String messageType = messageParts[0].trim(); // 0 is request; 1 is reply
+        String requestCounter = messageParts[1].trim();
+        String clientAddressString = messageParts[2].trim();
+        String clientPortInt = messageParts[3].trim();
+        String requestType = messageParts[4].trim();
         String requestContents = concatenateFromIndex(messageParts, 5, ":");
 
         // System.out.println("\nmessageType: " + messageType);
@@ -51,29 +65,46 @@ public class Server {
         // System.out.println("requestType: " + requestType);
         // System.out.println("requestContents: " + requestContents);
 
-        switch (requestType) {
-            case "1":
-                System.out.println("Server: Client request to read a content from a file");
-                startRead(clientAddress, clientPort, requestContents);
-                break;
-            case "2":
-                System.out.println("Server: Client request to insert a content into a file");
-                startInsert(clientAddress, clientPort, requestContents);
-                break;
-            case "3":
-                System.out.println("Server: Client request to monitor updates of a file");
-                startMonitor(clientAddress, clientPort, requestContents);
-                break;
-            case "4":
-                System.out.println("Server: Client request for idempotent service");
-                startIdempotent(clientAddress, clientPort, requestContents);
-                break;
-            case "5":
-                System.out.println("Server: Client request for non-idempotent service");
-                startNonIdempotent(clientAddress, clientPort, requestContents);
-                break;
-            default:
-                System.out.println("Server: Invalid request type.");
+        // If server is at most once, request is non-idempotent and performed before
+        // Check duplicate in history
+        if (AT_MOST_ONCE && isNonIdempotent(requestType) && history.isDuplicate(requestCounter, clientAddressString, clientPortInt)) {
+            
+            String content = history.getReplyContent(requestCounter, clientAddressString, clientPortInt);
+            System.out.println("Server: Replying the stored reply content found in history");
+            handler.sendOverUDP(clientAddress, clientPort, content);
+        }
+        else {
+            String replyContent = "";
+            // Proceed as per normal
+            switch (requestType) {
+                case "1":
+                    System.out.println("Server: Client request to read a content from a file");
+                    startRead(clientAddress, clientPort, requestContents);
+                    break;
+                case "2":
+                    System.out.println("Server: Client request to insert a content into a file");
+                    replyContent = startInsert(clientAddress, clientPort, requestContents);
+                    if (AT_MOST_ONCE) {
+                        // Add record
+                        history.addRecord(requestCounter, clientAddressString, clientPortInt, replyContent);
+                        history.printAllRecords();
+                    }
+                    break;
+                case "3":
+                    System.out.println("Server: Client request to monitor updates of a file");
+                    startMonitor(clientAddress, clientPort, requestContents);
+                    break;
+                case "4":
+                    System.out.println("Server: Client request for idempotent service");
+                    startIdempotent(clientAddress, clientPort, requestContents);
+                    break;
+                case "5":
+                    System.out.println("Server: Client request for non-idempotent service");
+                    startNonIdempotent(clientAddress, clientPort, requestContents);
+                    break;
+                default:
+                    System.out.println("Server: Invalid request type.");
+            }
         }
     }
 
@@ -82,6 +113,7 @@ public class Server {
         String filePath = requestContentsParts[0];
         long offset = Long.parseLong(requestContentsParts[1]);
         int bytesToRead = Integer.parseInt(requestContentsParts[2].trim());
+        
 
         System.out.println("Server: Filepath: " + filePath);
         System.out.println("Server: Offset: " + offset);
@@ -92,26 +124,28 @@ public class Server {
 
         if (file.exists()) {
             System.out.println("Server: File found!");
-            try (RandomAccessFile raf = new RandomAccessFile(file, "r")) {
-
+            try (RandomAccessFile randomAccessFile = new RandomAccessFile(file, "r")) {
+                boolean error = false;
                 // Check if offset is valid
-                if (offset < 0 || offset >= raf.length()) {
-                    System.err.println("Server: Error: Invalid offset");
+                if (offset < 0 || offset >= randomAccessFile.length()) {
+                    System.out.println("Server: Error: Invalid offset");
                     content = "1e2:Invalid byte offset. Please try again.";
+                    error = true;
                 }
                 // Check if number of bytes is valid
-                else if (bytesToRead <= 0 || offset + bytesToRead > raf.length()) {
-                    System.err.println("Server: Error: Invalid number of bytes");
+                if (bytesToRead <= 0 || offset + bytesToRead > randomAccessFile.length()) {
+                    System.out.println("Server: Error: Invalid number of bytes");
                     content = "1e3:Invalid byte offset. Please try again.";
+                    error = true;
                 }
-                // No issue
-                else {
+                // No error
+                if (!error) {
                     // Set the file pointer to the specified offset
-                    raf.seek(offset);
+                    randomAccessFile.seek(offset);
 
                     // Read the specified number of bytes
                     byte[] buffer = new byte[bytesToRead];
-                    int bytesRead = raf.read(buffer);
+                    int bytesRead = randomAccessFile.read(buffer);
 
                     // Convert the bytes to a String
                     content = new String(buffer, 0, bytesRead);
@@ -130,12 +164,90 @@ public class Server {
             content = "1e1:File not found. Please try again.";
         }
         // Send the file content to client
-        this.handler.sendOverUDP(clientAddress, clientPort, content);
+        handler.sendOverUDP(clientAddress, clientPort, content);
     }
 
-    private byte[]  startInsert(InetAddress clientAddress, int clientPort, String requestContents) {
-        byte[] replyData = new byte[0];
-        return replyData;
+    private String startInsert(InetAddress clientAddress, int clientPort, String requestContents) {
+        String[] requestContentsParts = requestContents.split(":");
+        String filePath = requestContentsParts[0];
+        long offset = Long.parseLong(requestContentsParts[1]);
+        String stringToInsert = requestContentsParts[2];
+
+        System.out.println("Server: Filepath: " + filePath);
+        System.out.println("Server: Offset: " + offset);
+        System.out.println("Server: Bytes: " + stringToInsert);
+
+        File file = new File(filePath);
+        String content = "";
+
+        if (file.exists()) {
+            System.out.println("Server: File found!");
+            try {
+                // Read file content
+                RandomAccessFile randomAccessFile = new RandomAccessFile(file, "rw");
+                boolean error = false;
+                // Check if offset is valid
+                if (offset < 0 || offset >= randomAccessFile.length()) {
+                    System.out.println("Server: Error: Invalid offset");
+                    content = "2e2:Invalid byte offset. Please try again.";
+                    error = true;
+                }
+                // Check if number of bytes is valid
+                if (offset < 0 || offset > file.length()) {
+                    System.out.println("Server: Error: Invalid number of bytes");
+                    content = "2e3:Invalid byte offset. Please try again.";
+                    error = true;
+                }
+                // No issue
+                if (!error) {
+
+                    // Create a temporary file to store the data after the insertion point
+                    File tempFile = File.createTempFile("temp", null);
+                    RandomAccessFile tempRandomAccessFile = new RandomAccessFile(tempFile, "rw");
+
+                    // Set the file pointers
+                    randomAccessFile.seek(offset);
+                    tempRandomAccessFile.seek(0);
+
+                    // Transfer data after insertion point to temporary file
+                    byte[] buffer = new byte[BUFFER_SIZE];
+                    int bytesRead;
+                    while ((bytesRead = randomAccessFile.read(buffer)) != -1) {
+                        tempRandomAccessFile.write(buffer, 0, bytesRead);
+                    }
+
+                    // Insert string
+                    randomAccessFile.seek(offset);
+                    randomAccessFile.writeBytes(stringToInsert);
+
+                    // Append the data from the temporary file back to the original file
+                    tempRandomAccessFile.seek(0);
+                    while ((bytesRead = tempRandomAccessFile.read(buffer)) != -1) {
+                        randomAccessFile.write(buffer, 0, bytesRead);
+                    }
+
+                    // Close files
+                    randomAccessFile.close();
+                    tempRandomAccessFile.close();
+                    tempFile.delete(); // Delete temporary file
+
+                    System.out.println("Server: File content inserted successfully.");
+                    content = "2:File content has been inserted successfully.";
+                }
+            }
+            catch (IOException e) {
+                System.out.println("Server: Error: Error inserting into file!");
+                content = "2e4:Error inserting into file. Please try again.";
+                e.printStackTrace();
+            }
+        }
+        else {
+            System.out.println("Server: File not found!");
+            content = "2e1:File not found. Please try again.";
+        }
+        // Send the file content to client
+        handler.sendOverUDP(clientAddress, clientPort, content);
+        return content;
     }
 
     private byte[] startMonitor(InetAddress clientAddress, int clientPort, String requestContents) {
@@ -196,7 +308,16 @@ public class Server {
     //     }
     // }
 
-    public String concatenateFromIndex(String[] elements, int startIndex, String delimiter) {
+    private boolean isNonIdempotent(String requestType) {
+        if (requestType.equals("2") || requestType.equals("5")) {
+            System.out.println("Server: Non-idempotent operation");
+            return true;
+        }
+        System.out.println("Server: Idempotent operation");
+        return false;
+    }
+
+    private String concatenateFromIndex(String[] elements, int startIndex, String delimiter) {
         StringBuilder stringBuilder = new StringBuilder();
 
         // Iterate through the elements starting from the startIndex

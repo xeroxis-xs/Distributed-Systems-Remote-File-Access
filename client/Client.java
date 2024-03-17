@@ -9,15 +9,16 @@ public class Client {
     private String serverAddress;
     private int serverPort;
 
-    public Handler handler = new Handler();
+    public Handler handler;
     public InputGetter ig = new InputGetter();
     public boolean isConnected = false;
 
 
-    public Client(int clientPort, String serverAddress, int serverPort) {
+    public Client(int clientPort, String serverAddress, int serverPort, int BUFFER_SIZE, double PACKET_LOSS_PROB, int MAX_RETRIES) {
         this.clientPort = clientPort;
         this.serverAddress = serverAddress;
         this.serverPort = serverPort;
+        handler = new Handler(BUFFER_SIZE, PACKET_LOSS_PROB, MAX_RETRIES);
     }
 
     // public void startClient() {
@@ -52,6 +53,7 @@ public class Client {
     public void startServices() {
         int choice;
         do {
+            System.out.println("\n");
             System.out.println("+---------------------------------------+");
             System.out.println("|    Welcome to Remote File Service!    |");
             System.out.println("+---------------------------------------+");
@@ -114,51 +116,65 @@ public class Client {
         // Connect to Server
         try {
 
-            this.handler.connectToServer(this.serverAddress, this.serverPort);
-            this.handler.openPort(this.clientPort);
+            handler.connectToServer(serverAddress, serverPort);
+            handler.openPort(clientPort);
 
-            this.startServices();
+            startServices();
         }
         catch (Exception e) {
             // Exit the program
-            System.out.println("\nConnection to " + this.serverAddress + " failed. Please try again.");
+            System.out.println("\nConnection to " + serverAddress + " failed. Please try again.");
+            e.printStackTrace();
             System.exit(1);
         }
     }
 
     private void startRead(String requestType) {
 
-        System.out.print("\nEnter the pathname of the file: ");
-        System.out.print("\nE.g. server/storage/hello.txt\n");
+        System.out.println("\nEnter the pathname of the file: ");
+        System.out.println("E.g. server/storage/hello.txt");
         String pathname = ig.getString();
 
-        System.out.print("Enter the offset of the file content (in bytes) to read from: ");
-        System.out.print("\nE.g. 0\n");
+        System.out.println("\nEnter the offset of the file content (in bytes) to read from: ");
+        System.out.println("E.g. 0");
         long offset = ig.getLong();
 
-        System.out.print("Enter the number of bytes to read: ");
-        System.out.print("\nE.g. 2\n");
+        System.out.println("\nEnter the number of bytes to read: ");
+        System.out.println("E.g. 2");
         int bytesToRead = ig.getInt();
 
         System.out.println("You have selected to read " + bytesToRead + " bytes from " + pathname + " starting from byte " + offset + ".");
         String requestContent = requestType + ":" + pathname + ":" + offset + ":" + bytesToRead;
 
         // Send request and receive reply from server
-        String replyFromServer = this.handler.sendOverUDP(requestContent);
+        String replyFromServer = handler.sendOverUDP(requestContent);
 
         // Process reply from server
-        this.processReplyFromServer(replyFromServer);
+        processReplyFromServer(replyFromServer);
     }
 
     private void startInsert(String requestType) {
 
-        System.out.print("\nEnter the pathname of the file: ");
+        System.out.println("\nEnter the pathname of the file: ");
+        System.out.println("E.g. server/storage/hello.txt");
+        String pathname = ig.getString();
 
-        System.out.print("Enter the offset of the file content (in bytes) to insert into: ");
+        System.out.println("\nEnter the offset of the file content (in bytes) to insert from: ");
+        System.out.println("E.g. 0");
+        long offset = ig.getLong();
 
-        System.out.print("Enter the number of bytes to insert: ");
+        System.out.println("\nEnter the content to be inserted into the file: ");
+        System.out.println("E.g. abc");
+        String stringToInsert = ig.getString();
 
-        // System.out.println("You have selected to insert " + bytes + " bytes into " + pathname + " starting from byte " + offset + ".");
+        System.out.println("You have selected to insert '" + stringToInsert + "' into " + pathname + " starting from byte " + offset + ".");
+        String requestContent = requestType + ":" + pathname + ":" + offset + ":" + stringToInsert;
+
+        // Send request and receive reply from server
+        String replyFromServer = handler.sendOverUDP(requestContent);
+
+        // Process reply from server
+        processReplyFromServer(replyFromServer);
     }
 
     private void startMonitor(String requestType) {
@@ -206,6 +222,22 @@ public class Client {
             case "1e4":
                 System.out.println("Request failed: " + replyContents);
                 break;
+            case "2":
+                System.out.println("Request successful: " + replyContents);
+                break;
+            case "2e1":
+                System.out.println("Request failed: " + replyContents);
+                break;
+            case "2e2":
+                System.out.println("Request failed: " + replyContents);
+                break;
+            case "2e3":
+                System.out.println("Request failed: " + replyContents);
+                break;
+            case "2e4":
+                System.out.println("Request failed: " + replyContents);
+                break;
+            
             default:
                 System.out.println("Request failed: " + replyContents);
                 break;
