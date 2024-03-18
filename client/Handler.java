@@ -14,7 +14,8 @@ import utils.ConsoleUI;
 public class Handler {
 
     private int BUFFER_SIZE;
-    private double PACKET_LOSS_PROB;
+    private double PACKET_SEND_LOSS_PROB;
+    private double PACKET_RECV_LOSS_PROB;
     private int MAX_RETRIES;
     private InetSocketAddress serverAddress;
     private String clientAddress;
@@ -22,10 +23,11 @@ public class Handler {
     private DatagramSocket socket;
     private AtomicInteger requestIdCounter = new AtomicInteger(0);
 
-    public Handler(int BUFFER_SIZE, double PACKET_LOSS_PROB, int MAX_RETRIES) {
+    public Handler(int BUFFER_SIZE, double PACKET_SEND_LOSS_PROB, double PACKET_RECV_LOSS_PROB, int MAX_RETRIES) {
         this.clientAddress = this.getClientAddress();
         this.BUFFER_SIZE = BUFFER_SIZE;
-        this.PACKET_LOSS_PROB = PACKET_LOSS_PROB;
+        this.PACKET_SEND_LOSS_PROB = PACKET_SEND_LOSS_PROB;
+        this.PACKET_RECV_LOSS_PROB = PACKET_RECV_LOSS_PROB;
         this.MAX_RETRIES = MAX_RETRIES;
     }
 
@@ -89,10 +91,15 @@ public class Handler {
             // Create a DatagramPacket for sending data
             DatagramPacket requestPacket = new DatagramPacket(marshalledData, marshalledData.length, serverAddress);
 
-            // Send over UDP
-            this.socket.send(requestPacket);
+            if (Math.random() < PACKET_SEND_LOSS_PROB){
+                System.out.println("\n***** Simulating sending message loss from client *****");
+            }
+            else {
+                // Send over UDP
+                this.socket.send(requestPacket);
+            }
 
-            // receive iover UDP
+            // Receive over UDP
             unmarshalledData = this.receiveOverUDP(requestPacket);
 
         }
@@ -120,6 +127,11 @@ public class Handler {
                 // Set timeout for 5 seconds
                 this.socket.setSoTimeout(timeout);
 
+                if (Math.random() < PACKET_RECV_LOSS_PROB){
+                    System.out.println("\n***** Simulating receiving message loss from server *****");
+                    continue;
+                }
+
                 // Receive data from server over UDP
                 this.socket.receive(receivePacket);
 
@@ -127,14 +139,9 @@ public class Handler {
                 byte[] marshalledData = receivePacket.getData();
                 unmarshalledData = utils.Marshaller.unmarshal(marshalledData);
 
-                ConsoleUI.displaySeparator('=', 30);
+                ConsoleUI.displaySeparator('=', 40);
                 System.out.println("Raw Message from Server: " + unmarshalledData);
-                ConsoleUI.displaySeparator('=', 30);
-
-                if (Math.random() < PACKET_LOSS_PROB){
-                    System.out.println("\n*** Simulating receiving message loss from server ***");
-                    continue;
-                }
+                ConsoleUI.displaySeparator('=', 40);
 
                 break;
             }

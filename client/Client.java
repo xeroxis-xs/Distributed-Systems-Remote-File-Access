@@ -14,41 +14,12 @@ public class Client {
     public boolean isConnected = false;
 
 
-    public Client(int clientPort, String serverAddress, int serverPort, int BUFFER_SIZE, double PACKET_LOSS_PROB, int MAX_RETRIES) {
+    public Client(int clientPort, String serverAddress, int serverPort, int BUFFER_SIZE, double PACKET_SEND_LOSS_PROB, double PACKET_RECV_LOSS_PROB, int MAX_RETRIES) {
         this.clientPort = clientPort;
         this.serverAddress = serverAddress;
         this.serverPort = serverPort;
-        handler = new Handler(BUFFER_SIZE, PACKET_LOSS_PROB, MAX_RETRIES);
+        handler = new Handler(BUFFER_SIZE, PACKET_SEND_LOSS_PROB, PACKET_RECV_LOSS_PROB, MAX_RETRIES);
     }
-
-    // public void startClient() {
-    //     int choice;
-
-    //     do {
-    //         System.out.println("+---------------------------------------+");
-    //         System.out.println("|               Welcome!                |");
-    //         System.out.println("+---------------------------------------+");
-    //         System.out.println("| [1] Connect to a server               |");
-    //         System.out.println("| [2] Exit                              |");
-    //         System.out.println("+---------------------------------------+");
-    //         System.out.print("\nEnter your choice: ");
-
-    //         choice = ig.getInt();
-
-    //         switch (choice) {
-    //             case 1:
-    //                 renderServerIP();
-    //                 break;
-    //             case 2:
-    //                 System.out.println("Exiting...");
-    //                 System.exit(0);
-    //                 break;
-    //             default:
-    //                 System.out.println("Invalid choice. Please try again.");
-    //                 break;
-    //         }
-    //     } while (choice != 2);
-    // }
 
     public void startServices() {
         int choice;
@@ -95,20 +66,6 @@ public class Client {
             }
         } while (choice != 6);
     }
-
-    // private void renderServerIP() {
-
-    //     System.out.print("\nEnter the IP address of the server: ");
-    //     this.serverIP = ig.getString();
-
-    //     System.out.println("You have selected to connect to " + this.serverIP);
-    //     this.startConnection();
-
-    // }
-
-    // public String getServerIP() {
-    //     return this.serverIP;
-    // }
 
 
     public void startConnection() {

@@ -51,11 +51,11 @@ public class Server {
     private void processRequest(InetAddress clientAddress, int clientPort, String unmarshalledData) {
 
         String[] messageParts = unmarshalledData.split(":");
-        String messageType = messageParts[0].trim(); // 0 is request; 1 is reply
-        String requestCounter = messageParts[1].trim();
-        String clientAddressString = messageParts[2].trim();
-        String clientPortInt = messageParts[3].trim();
-        String requestType = messageParts[4].trim();
+        String messageType = messageParts[0]; // 0 is request; 1 is reply
+        String requestCounter = messageParts[1];
+        String clientAddressString = messageParts[2];
+        String clientPortInt = messageParts[3];
+        String requestType = messageParts[4];
         String requestContents = concatenateFromIndex(messageParts, 5, ":");
 
         // System.out.println("\nmessageType: " + messageType);
