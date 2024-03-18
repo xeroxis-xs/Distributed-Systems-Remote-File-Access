@@ -13,16 +13,22 @@ import utils.ConsoleUI;
 
 public class Handler {
 
-    private static final int BUFFER_SIZE = 1024;
-    private double packetLossProb = 0.9;
+    private int BUFFER_SIZE;
+    private double PACKET_SEND_LOSS_PROB;
+    private double PACKET_RECV_LOSS_PROB;
+    private int MAX_RETRIES;
     private InetSocketAddress serverAddress;
     private String clientAddress;
     private int clientPort;
     private DatagramSocket socket;
     private AtomicInteger requestIdCounter = new AtomicInteger(0);
 
-    public Handler() {
+    public Handler(int BUFFER_SIZE, double PACKET_SEND_LOSS_PROB, double PACKET_RECV_LOSS_PROB, int MAX_RETRIES) {
         this.clientAddress = this.getClientAddress();
+        this.BUFFER_SIZE = BUFFER_SIZE;
+        this.PACKET_SEND_LOSS_PROB = PACKET_SEND_LOSS_PROB;
+        this.PACKET_RECV_LOSS_PROB = PACKET_RECV_LOSS_PROB;
+        this.MAX_RETRIES = MAX_RETRIES;
     }
 
     public void connectToServer(String serverAddress, int serverPort) throws Exception {
@@ -85,10 +91,15 @@ public class Handler {
             // Create a DatagramPacket for sending data
             DatagramPacket requestPacket = new DatagramPacket(marshalledData, marshalledData.length, serverAddress);
 
-            // Send over UDP
-            this.socket.send(requestPacket);
+            if (Math.random() < PACKET_SEND_LOSS_PROB){
+                System.out.println("\n***** Simulating sending message loss from client *****");
+            }
+            else {
+                // Send over UDP
+                this.socket.send(requestPacket);
+            }
 
-            // receive iover UDP
+            // Receive over UDP
             unmarshalledData = this.receiveOverUDP(requestPacket);
 
         }
@@ -102,8 +113,6 @@ public class Handler {
     public String receiveOverUDP(DatagramPacket requestPacket) {
 
         String unmarshalledData = null;
-        // boolean received = false;
-        int maxRetries = 3;
         int timeout = 5000;
 
         // Prepare a byte buffer to store received data
@@ -112,12 +121,16 @@ public class Handler {
         // Create a DatagramPacket for receiving data
         DatagramPacket receivePacket = new DatagramPacket(buffer, buffer.length);
 
-
         int retries = 0;
-        while (retries < maxRetries) {
+        while (retries < MAX_RETRIES) {
             try {
                 // Set timeout for 5 seconds
                 this.socket.setSoTimeout(timeout);
+
+                if (Math.random() < PACKET_RECV_LOSS_PROB){
+                    System.out.println("\n***** Simulating receiving message loss from server *****");
+                    continue;
+                }
 
                 // Receive data from server over UDP
                 this.socket.receive(receivePacket);
@@ -126,21 +139,16 @@ public class Handler {
                 byte[] marshalledData = receivePacket.getData();
                 unmarshalledData = utils.Marshaller.unmarshal(marshalledData);
 
-                // ConsoleUI.displaySeparator('=', 30);
-                // System.out.println("Raw Message from Server: " + unmarshalledData);
-                // ConsoleUI.displaySeparator('=', 30);
-
-                if (Math.random() < packetLossProb){
-                    System.out.println("*** Simulating receiving message loss from server ***");
-                    continue;
-                }
+                ConsoleUI.displaySeparator('=', 40);
+                System.out.println("Raw Message from Server: " + unmarshalledData);
+                ConsoleUI.displaySeparator('=', 40);
 
                 break;
             }
             catch (SocketTimeoutException e) {
                 retries++;
                 System.out.println("\nTimeout occurred while waiting for response from server.");
-                System.out.println("Retransmitting request to server. Retry (" + retries + ")");
+                System.out.println("Retransmitting request to server. Retry (" + retries + ")\n");
 
                 try {
                     // Resending
