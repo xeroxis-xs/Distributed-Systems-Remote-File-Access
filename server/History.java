@@ -51,17 +51,20 @@ public class History {
 
     // Display all records
     public void printAllRecords() {
-        ConsoleUI.displaySeparator('*', 40);
+        System.out.println("\n");
+        System.out.println("+---------------------------------------+");
+        System.out.println("|             History Records           |");
+        System.out.println("+---------------------------------------+");
         System.out.println("Server: Total number of records in history: " + size);
         for (int i = 0; i < size; i++) {
-            ConsoleUI.displaySeparator('-', 40);
-            System.out.println("Server: Record " + (i+1));
+            ConsoleUI.displaySeparator('-', 41);
+            System.out.println("Server: Record #" + (i+1));
             System.out.println("Server: Request Counter: " + records[i].getRequestCounter());
             System.out.println("Server: Client Address: " + records[i].getClientAddress());
             System.out.println("Server: Client Port: " + records[i].getClientPort());
             System.out.println("Server: Reply Content: " + records[i].getReplyContent());
         }
-        ConsoleUI.displaySeparator('*', 40);
+        ConsoleUI.displaySeparator('-', 41);
     }
 }
 

@@ -55,21 +55,6 @@ public class Handler {
 
             // Send over UDP
             this.socket.send(sendPacket);
-            // this.received = false;
-
-            // // Prepare a byte buffer to store received data
-            // byte[] buffer = new byte[BUFFER_SIZE];
-
-            // // Create a DatagramPacket for receiving data
-            // DatagramPacket receivePacket = new DatagramPacket(buffer, buffer.length);
-
-            // // Set timeout for 5 seconds
-            // this.socket.setSoTimeout(5000);
-
-            // while(!received) {
-            //     // Receive datagram packet over UDP
-            //     unmarshalledData = this.receiveOverUDP(receivePacket, requestPacket);
-            // }
         }
         catch (IOException e) {
             System.out.println("\nAn IO error occurred: " + e.getMessage());
@@ -86,6 +71,8 @@ public class Handler {
         String unmarshalledData = null;
 
         try {
+            // Set a timeout for the socket (in milliseconds) so it does not block the execution
+            this.socket.setSoTimeout(1000); // Timeout set to 1 seconds
             // Receive data from server over UDP
             this.socket.receive(receivePacket);
 
@@ -97,22 +84,12 @@ public class Handler {
             byte[] marshalledData = receivePacket.getData();
             unmarshalledData = utils.Marshaller.unmarshal(marshalledData);
 
-            ConsoleUI.displaySeparator('=', 40);
+            ConsoleUI.displaySeparator('=', 41);
             System.out.println("Raw Message from Client: " + unmarshalledData);
-            ConsoleUI.displaySeparator('=', 40);
+            ConsoleUI.displaySeparator('=', 41);
         }
-        catch (SocketTimeoutException e) {
-            System.out.println("\nTimeout occurred while waiting for response from client.");
-            System.out.println("Retransmitting reply to client.");
-            // try {
-            //     // Resending
-            //     this.socket.send(requestPacket);
-            // }
-            // catch (IOException ioe) {
-            //     System.out.println("\nSecond retransmission failed. Exiting... ");
-            //     System.out.println("An IO error occurred: " + ioe.getMessage());
-            //     System.exit(1);
-            // }
+        catch (SocketTimeoutException ste) {
+
         }
         catch (IOException e) {
             System.out.println("\nAn IO error occurred: " + e.getMessage());
