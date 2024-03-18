@@ -139,9 +139,9 @@ public class Handler {
                 byte[] marshalledData = receivePacket.getData();
                 unmarshalledData = utils.Marshaller.unmarshal(marshalledData);
 
-                ConsoleUI.displaySeparator('=', 40);
+                ConsoleUI.displaySeparator('=', 41);
                 System.out.println("Raw Message from Server: " + unmarshalledData);
-                ConsoleUI.displaySeparator('=', 40);
+                ConsoleUI.displaySeparator('=', 41);
 
                 break;
             }
@@ -163,6 +163,45 @@ public class Handler {
             catch (IOException e) {
                 System.out.println("\nAn IO error occurred: " + e.getMessage());
             }
+        }
+
+        return unmarshalledData;
+
+    }
+
+    public String monitorOverUDP() {
+
+        String unmarshalledData = null;
+        int timeout = 0;
+
+        // Prepare a byte buffer to store received data
+        byte[] buffer = new byte[BUFFER_SIZE];
+
+        // Create a DatagramPacket for receiving data
+        DatagramPacket receivePacket = new DatagramPacket(buffer, buffer.length);
+
+        try {
+            // Remove any timeout since it is blocking operation
+            this.socket.setSoTimeout(timeout);
+
+            if (Math.random() < PACKET_RECV_LOSS_PROB){
+                System.out.println("\n***** Simulating receiving message loss from server *****");
+                return unmarshalledData;
+            }
+
+            // Receive data from server over UDP
+            this.socket.receive(receivePacket);
+
+            // Unmarshal the data into a String
+            byte[] marshalledData = receivePacket.getData();
+            unmarshalledData = utils.Marshaller.unmarshal(marshalledData);
+
+            ConsoleUI.displaySeparator('=', 41);
+            System.out.println("Raw Message from Server: " + unmarshalledData);
+            ConsoleUI.displaySeparator('=', 41);
+        }
+        catch (IOException e) {
+            System.out.println("\nAn IOO error occurred: " + e.getMessage());
         }
 
         return unmarshalledData;

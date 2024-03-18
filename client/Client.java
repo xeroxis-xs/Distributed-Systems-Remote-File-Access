@@ -9,10 +9,9 @@ public class Client {
     private String serverAddress;
     private int serverPort;
 
-    public Handler handler;
-    public InputGetter ig = new InputGetter();
-    public boolean isConnected = false;
-
+    private Handler handler;
+    private InputGetter ig = new InputGetter();
+    private boolean isMonitoring = false;
 
     public Client(int clientPort, String serverAddress, int serverPort, int BUFFER_SIZE, double PACKET_SEND_LOSS_PROB, double PACKET_RECV_LOSS_PROB, int MAX_RETRIES) {
         this.clientPort = clientPort;
@@ -21,7 +20,24 @@ public class Client {
         handler = new Handler(BUFFER_SIZE, PACKET_SEND_LOSS_PROB, PACKET_RECV_LOSS_PROB, MAX_RETRIES);
     }
 
-    public void startServices() {
+    public void startConnection() {
+        // Open UDP Port
+        // Connect to Server
+        try {
+
+            handler.connectToServer(serverAddress, serverPort);
+            handler.openPort(clientPort);
+            startServices();
+        }
+        catch (Exception e) {
+            // Exit the program
+            System.out.println("\nConnection to " + serverAddress + " failed. Please try again.");
+            e.printStackTrace();
+            System.exit(1);
+        }
+    }
+
+    private void startServices() {
         int choice;
         do {
             System.out.println("\n");
@@ -68,27 +84,11 @@ public class Client {
     }
 
 
-    public void startConnection() {
-        // Open UDP Port
-        // Connect to Server
-        try {
-
-            handler.connectToServer(serverAddress, serverPort);
-            handler.openPort(clientPort);
-
-            startServices();
-        }
-        catch (Exception e) {
-            // Exit the program
-            System.out.println("\nConnection to " + serverAddress + " failed. Please try again.");
-            e.printStackTrace();
-            System.exit(1);
-        }
-    }
+    
 
     private void startRead(String requestType) {
 
-        System.out.println("\nEnter the pathname of the file: ");
+        System.out.println("\nEnter the pathname of the target file to be read: ");
         System.out.println("E.g. server/storage/hello.txt");
         String pathname = ig.getString();
 
@@ -112,7 +112,7 @@ public class Client {
 
     private void startInsert(String requestType) {
 
-        System.out.println("\nEnter the pathname of the file: ");
+        System.out.println("\nEnter the pathname of the target file to insert into: ");
         System.out.println("E.g. server/storage/hello.txt");
         String pathname = ig.getString();
 
@@ -135,7 +135,30 @@ public class Client {
     }
 
     private void startMonitor(String requestType) {
+        System.out.println("\nEnter the pathname of the target file to be monitored: ");
+        System.out.println("E.g. server/storage/hello.txt");
+        String pathname = ig.getString();
 
+        System.out.println("\nEnter the duration (in minutes) you would like to receive updates for: ");
+        System.out.println("E.g. 1");
+        long monitorMinutes = ig.getLong();
+
+        System.out.println("You have selected to monitor " + pathname + " for " + monitorMinutes + " minute(s)");
+        String requestContent = requestType + ":" + pathname + ":" + monitorMinutes;
+
+        // Send request and receive reply from server
+        String replyFromServer = handler.sendOverUDP(requestContent);
+
+        // Process reply from server
+        processReplyFromServer(replyFromServer);
+
+        while(isMonitoring) {
+            // Recevives monitoring updates from server
+            String monitorFromServer = handler.monitorOverUDP();
+            // Process monitoring reply from server
+            processReplyFromServer(monitorFromServer);
+        }
+        
     }
 
     private void startIdempotent(String requestType) {
@@ -147,6 +170,7 @@ public class Client {
     }
 
     private void processReplyFromServer(String message) {
+        // if (message != null) {
         String[] messageParts = message.split(":");
         String messageType = messageParts[0]; // 0 is request; 1 is reply
         String replyCounter = messageParts[1];
@@ -162,47 +186,63 @@ public class Client {
         // System.out.print("\nreplyType: " + replyType);
         // System.out.print("\nreplyContents: " + replyContents);
 
-        ConsoleUI.displaySeparator('=', 40);
+        ConsoleUI.displaySeparator('=', 41);
         switch (replyType) {
             case "1":
-                System.out.println("Request successful: " + replyContents);
+                System.out.println("Read request successful: " + replyContents);
                 break;
             case "1e1":
-                System.out.println("Request failed: " + replyContents);
+                System.out.println("Read request failed: " + replyContents);
                 break;
             case "1e2":
-                System.out.println("Request failed: " + replyContents);
+                System.out.println("Read request failed: " + replyContents);
                 break;
             case "1e3":
-                System.out.println("Request failed: " + replyContents);
+                System.out.println("Read request failed: " + replyContents);
                 break;
             case "1e4":
-                System.out.println("Request failed: " + replyContents);
+                System.out.println("Read request failed: " + replyContents);
                 break;
             case "2":
-                System.out.println("Request successful: " + replyContents);
+                System.out.println("Insert request successful: " + replyContents);
                 break;
             case "2e1":
-                System.out.println("Request failed: " + replyContents);
+                System.out.println("Insert request failed: " + replyContents);
                 break;
             case "2e2":
-                System.out.println("Request failed: " + replyContents);
+                System.out.println("Insert request failed: " + replyContents);
                 break;
             case "2e3":
-                System.out.println("Request failed: " + replyContents);
+                System.out.println("Insert request failed: " + replyContents);
                 break;
             case "2e4":
-                System.out.println("Request failed: " + replyContents);
+                System.out.println("Insert request failed: " + replyContents);
+                break;
+            case "3":
+                System.out.println("Monitor request successful: " + replyContents);
+                isMonitoring = true;
+                break;
+            case "3e1":
+                System.out.println("Monitor update: " + replyContents);
+                break;
+            case "3e2":
+                System.out.println("Monitor request ended: " + replyContents);
+                isMonitoring = false;
+                break;
+            case "3e3":
+                System.out.println("Monitor request failed: " + replyContents);
                 break;
             
             default:
-                System.out.println("Request failed: " + replyContents);
+                System.out.println("Other server reply: " + replyContents);
                 break;
         }
-        ConsoleUI.displaySeparator('=', 40);
+        ConsoleUI.displaySeparator('=', 41);
+        // }
+        
     }
 
-    public String concatenateFromIndex(String[] elements, int startIndex, String delimiter) {
+    private String concatenateFromIndex(String[] elements, int startIndex, String delimiter) {
         StringBuilder stringBuilder = new StringBuilder();
 
         // Iterate through the elements starting from the startIndex

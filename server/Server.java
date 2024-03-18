@@ -3,25 +3,33 @@ package server;
 import java.io.*;
 import java.net.DatagramPacket;
 import java.net.InetAddress;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.List;
 
 public class Server {
     private int BUFFER_SIZE;
     private int HISTORY_SIZE;
+    private int MONITOR_SIZE;
     private boolean AT_MOST_ONCE;
     private Handler handler = new Handler();
     private History history;
+    private Monitor monitor;
 
     // Constructor
-    public Server(int BUFFER_SIZE, int HISTORY_SIZE, boolean AT_MOST_ONCE) {
+    public Server(int BUFFER_SIZE, int HISTORY_SIZE, int MONITOR_SIZE, boolean AT_MOST_ONCE) {
         if (AT_MOST_ONCE) {
             this.BUFFER_SIZE = BUFFER_SIZE;
             this.HISTORY_SIZE = HISTORY_SIZE;
+            this.MONITOR_SIZE = MONITOR_SIZE;
             this.AT_MOST_ONCE = AT_MOST_ONCE;
             this.history = new History(this.HISTORY_SIZE);
+            this.monitor = new Monitor(this.MONITOR_SIZE);
         }
         else {
             // At least once, no history
             this.BUFFER_SIZE = BUFFER_SIZE;
+            this.MONITOR_SIZE = MONITOR_SIZE;
         }
         
     }
@@ -44,68 +52,75 @@ public class Server {
             int clientPort = (int) result[1];
             String unmarshalledData = (String) result[2];
 
+            // Process any incoming message
             processRequest(clientAddress, clientPort, unmarshalledData);
+
+            // Constantly remove and inform expired subscribers
+            informExpiredSubscribers();
+
         }
     }
 
     private void processRequest(InetAddress clientAddress, int clientPort, String unmarshalledData) {
-
-        String[] messageParts = unmarshalledData.split(":");
-        String messageType = messageParts[0]; // 0 is request; 1 is reply
-        String requestCounter = messageParts[1];
-        String clientAddressString = messageParts[2];
-        String clientPortInt = messageParts[3];
-        String requestType = messageParts[4];
-        String requestContents = concatenateFromIndex(messageParts, 5, ":");
-
-        // System.out.println("\nmessageType: " + messageType);
-        // System.out.println("requestCounter: " + requestCounter);
-        // System.out.println("clientAddress: " + clientAddress);
-        // System.out.println("clientPort: " + clientPort);
-        // System.out.println("requestType: " + requestType);
-        // System.out.println("requestContents: " + requestContents);
-
-        // If server is at most once, request is non-idempotent and performed before
-        // Check duplicate in history
-        if (AT_MOST_ONCE && isNonIdempotent(requestType) && history.isDuplicate(requestCounter, clientAddressString, clientPortInt)) {
-            
-            String content = history.getReplyContent(requestCounter, clientAddressString, clientPortInt);
-            System.out.println("Server: Replying the stored reply content found in history");
-            handler.sendOverUDP(clientAddress, clientPort, content);
-        }
-        else {
-            String replyContent = "";
-            // Proceed as per normal
-            switch (requestType) {
-                case "1":
-                    System.out.println("Server: Client request to read a content from a file");
-                    startRead(clientAddress, clientPort, requestContents);
-                    break;
-                case "2":
-                    System.out.println("Server: Client request to insert a content into a file");
-                    replyContent = startInsert(clientAddress, clientPort, requestContents);
-                    if (AT_MOST_ONCE) {
-                        // Add record
-                        history.addRecord(requestCounter, clientAddressString, clientPortInt, replyContent);
-                        history.printAllRecords();
-                    }
-                    break;
-                case "3":
-                    System.out.println("Server: Client request to monitor updates of a file");
-                    startMonitor(clientAddress, clientPort, requestContents);
-                    break;
-                case "4":
-                    System.out.println("Server: Client request for idempotent service");
-                    startIdempotent(clientAddress, clientPort, requestContents);
-                    break;
-                case "5":
-                    System.out.println("Server: Client request for non-idempotent service");
-                    startNonIdempotent(clientAddress, clientPort, requestContents);
-                    break;
-                default:
-                    System.out.println("Server: Invalid request type.");
+        if (unmarshalledData != null) {
+            String[] messageParts = unmarshalledData.split(":");
+            String messageType = messageParts[0]; // 0 is request; 1 is reply
+            String requestCounter = messageParts[1];
+            String clientAddressString = messageParts[2];
+            String clientPortInt = messageParts[3];
+            String requestType = messageParts[4];
+            String requestContents = concatenateFromIndex(messageParts, 5, ":");
+    
+            // System.out.println("\nmessageType: " + messageType);
+            // System.out.println("requestCounter: " + requestCounter);
+            // System.out.println("clientAddress: " + clientAddress);
+            // System.out.println("clientPort: " + clientPort);
+            // System.out.println("requestType: " + requestType);
+            // System.out.println("requestContents: " + requestContents);
+    
+            // If server is at most once, request is non-idempotent and performed before
+            // Check duplicate in history
+            if (AT_MOST_ONCE && isNonIdempotent(requestType) && history.isDuplicate(requestCounter, clientAddressString, clientPortInt)) {
+                
+                String content = history.getReplyContent(requestCounter, clientAddressString, clientPortInt);
+                System.out.println("Server: Replying the stored reply content found in history");
+                handler.sendOverUDP(clientAddress, clientPort, content);
+            }
+            else {
+                String replyContent = "";
+                // Proceed as per normal
+                switch (requestType) {
+                    case "1":
+                        System.out.println("Server: Client request to read a content from a file");
+                        startRead(clientAddress, clientPort, requestContents);
+                        break;
+                    case "2":
+                        System.out.println("Server: Client request to insert a content into a file");
+                        replyContent = startInsert(clientAddress, clientPort, requestContents);
+                        if (AT_MOST_ONCE) {
+                            // Add record
+                            history.addRecord(requestCounter, clientAddressString, clientPortInt, replyContent);
+                            // history.printAllRecords();
+                        }
+                        break;
+                    case "3":
+                        System.out.println("Server: Client request to monitor updates of a file");
+                        startMonitor(clientAddress, clientPort, requestContents);
+                        break;
+                    case "4":
+                        System.out.println("Server: Client request for idempotent service");
+                        startIdempotent(clientAddress, clientPort, requestContents);
+                        break;
+                    case "5":
+                        System.out.println("Server: Client request for non-idempotent service");
+                        startNonIdempotent(clientAddress, clientPort, requestContents);
+                        break;
+                    default:
+                        System.out.println("Server: Invalid request type.");
+                }
             }
         }
+        
     }
 
     private void startRead(InetAddress clientAddress, int clientPort, String requestContents) {
@@ -156,7 +171,6 @@ public class Server {
             catch (IOException e) {
                 System.out.println("Server: Error: Error reading file!");
                 content = "1e4:Error reading file. Please try again.";
-                e.printStackTrace();
             }
         }
         else {
@@ -175,7 +189,7 @@ public class Server {
 
         System.out.println("Server: Filepath: " + filePath);
         System.out.println("Server: Offset: " + offset);
-        System.out.println("Server: Bytes: " + stringToInsert);
+        System.out.println("Server: Content: " + stringToInsert);
 
         File file = new File(filePath);
         String content = "";
@@ -226,13 +240,16 @@ public class Server {
                         randomAccessFile.write(buffer, 0, bytesRead);
                     }
 
+                    System.out.println("Server: File content inserted successfully.");
+                    content = "2:File content has been inserted successfully.";
+
+                    // New changes to the file, update subscribers
+                    informSubscribers(filePath);
+
                     // Close files
                     randomAccessFile.close();
                     tempRandomAccessFile.close();
                     tempFile.delete(); // Delete temporary file
-
-                    System.out.println("Server: File content inserted successfully.");
-                    content = "2:File content has been inserted successfully.";
                 }
             }
             catch (IOException e) {
@@ -245,68 +262,98 @@ public class Server {
             System.out.println("Server: File not found!");
             content = "2e1:File not found. Please try again.";
         }
-        // Send the file content to client
+        // Send the content to client
         handler.sendOverUDP(clientAddress, clientPort, content);
         return content;
     }
 
-    private byte[] startMonitor(InetAddress clientAddress, int clientPort, String requestContents) {
-        byte[] replyData = new byte[0];
-        return replyData;
+    private void startMonitor(InetAddress clientAddress, int clientPort, String requestContents) {
+        String[] requestContentsParts = requestContents.split(":");
+        String filePath = requestContentsParts[0];
+        long monitorMinutes = Long.parseLong(requestContentsParts[1]);
+
+        System.out.println("Server: Filepath: " + filePath);
+        System.out.println("Server: Duration: " + monitorMinutes + " minute(s)");
+
+        File file = new File(filePath);
+        String content = "";
+        if (file.exists()) {
+            System.out.println("Server: File for monitoring found!");
+            // Add to monitor list
+            monitor.addSubscriber(clientAddress, clientPort, filePath, monitorMinutes);
+            // monitor.printAllSubscribers();
+            content = "3:File for monitoring found. Successfully registered for monitoring callbacks.";
+        }
+        else {
+            System.out.println("Server: File for monitoring not found!");
+            content = "3e3:File for monitoring not found. Failed to register for monitoring callbacks.";
+        }
+
+        handler.sendOverUDP(clientAddress, clientPort, content);
     }
 
-    private byte[] startIdempotent(InetAddress clientAddress, int clientPort, String requestContents) {
-        byte[] replyData = new byte[0];
-        return replyData;
+    private void informSubscribers(String filePath) {
+
+        try {
+            // Open the file in read-only mode
+            RandomAccessFile randomAccessFile = new RandomAccessFile(filePath, "r");
+
+            // Get the length of the file
+            long length = randomAccessFile.length();
+
+            // Create a byte array to hold the file content
+            byte[] fileContent = new byte[(int) length];
+
+            // Read the entire file into the byte array
+            randomAccessFile.readFully(fileContent);
+
+            // Convert the byte array to a string (assuming text file)
+            String fileContentString = new String(fileContent);
+
+            System.out.println("Server: File content for subscribers: " + fileContentString);
+            String content = "3e1:" + fileContentString;
+
+            List<Subscriber> subscriberList = monitor.getAllSubscribersAsList();
+
+            for (Subscriber subscriber : subscriberList) {
+                if (subscriber.getFilePath().equals(filePath)) {
+                    // Send the file updated content to each subscriber subscribed to the file
+                    handler.sendOverUDP(subscriber.getClientAddress(), subscriber.getClientPort(), content);
+                }
+            }
+
+            // Close the file
+            randomAccessFile.close();
+        }
+        catch (IOException e) {
+            System.out.println("Server: Error reading updated file");
+            e.printStackTrace();
+        }
+        
     }
 
-    private byte[] startNonIdempotent(InetAddress clientAddress, int clientPort, String requestContents) {
-        byte[] replyData = new byte[0];
-        return replyData;
+    private void informExpiredSubscribers() {
+
+        // Get expired subscribers
+        Map<InetAddress, Integer> removedSubscribers = monitor.removeExpiredSubscriber();
+
+        // Inform expired subscribers
+        for (Map.Entry<InetAddress, Integer> entry : removedSubscribers.entrySet()) {
+            InetAddress removedClientAddress = entry.getKey();
+            Integer removedClientPort = entry.getValue();
+            String content = "3e2:Monitor interval expired. You will no longer receive monitoring update.";
+
+            handler.sendOverUDP(removedClientAddress, removedClientPort, content);
+        }
     }
 
-    // public void sendOverUDP(String message) {
-    //     try {
+    private void startIdempotent(InetAddress clientAddress, int clientPort, String requestContents) {
 
-    //         // Marshal the data into a byte array
-    //         byte[] marshalledData = utils.Marshaller.marshal(message);
+    }
 
-    //         // Convert into data packet
-    //         DatagramPacket packet = new DatagramPacket(marshalledData, marshalledData.length, this.clientAddress, this.clientPort);
+    private void startNonIdempotent(InetAddress clientAddress, int clientPort, String requestContents) {
 
-    //         // Send over UDP
-    //         this.socket.send(packet);
-    //     }
-    //     catch (IOException e) {
-    //         e.printStackTrace();
-    //     }
-    // }
-
-    // public void receiveOverUDP() {
-    //     try {
-    //         byte[] receiveData = new byte[BUFFER_SIZE];
-    //         DatagramPacket packet = new DatagramPacket(receiveData, receiveData.length);
-    //         this.socket.receive(packet);
-
-    //         this.clientAddress = packet.getAddress();
-    //         this.clientPort = packet.getPort();
-    //         System.out.println("Server: Connected Client: " + clientAddress.toString().substring(1) + ":" + clientPort);
-
-    //         byte[] marshalledData = packet.getData();
-    //         String unmarshalledData = utils.Marshaller.unmarshal(marshalledData);
-
-    //         String[] messageParts = unmarshalledData.split(":");
-
-    //         int messageHeader = Integer.parseInt(messageParts[0]);
-    //         String[] messageBody = Arrays.copyOfRange(messageParts, 1, messageParts.length);
-
-    //         System.out.println("Server: Received new message!");
-    //         this.processRequest(messageHeader, messageBody);
-    //     }
-    //     catch (IOException e) {
-    //         e.printStackTrace();
-    //     }
-    // }
+    }
 
     private boolean isNonIdempotent(String requestType) {
         if (requestType.equals("2") || requestType.equals("5")) {
