@@ -5,35 +5,35 @@ void ConsoleUI::displaySeparator(char separatorChar, int length)
 {
     for (int i = 0; i < length; i++)
     {
-        cout << separatorChar;
+        std::cout << separatorChar;
     }
-    cout << endl;
+    std::cout << std::endl;
 }
 
-void ConsoleUI::displayMessage(const string &message)
+void ConsoleUI::displayMessage(const std::string &message)
 {
-    cout << message << endl;
+    std::cout << message << std::endl;
 }
 
-void ConsoleUI::displayPrompt(const string &prompt)
+void ConsoleUI::displayPrompt(const std::string &prompt)
 {
-    cout << prompt << ": ";
+    std::cout << prompt << ": ";
 }
 
-void ConsoleUI::displayBox(const string &text)
+void ConsoleUI::displayBox(const std::string &text)
 {
     int length = text.length();
     printHorizontalLine(length);
-    cout << "| " << text << " |" << endl;
+    std::cout << "| " << text << " |" << std::endl;
     printHorizontalLine(length);
 }
 
 void ConsoleUI::printHorizontalLine(int length)
 {
-    cout << "+";
+    std::cout << "+";
     for (int i = 0; i < length + 2; i++)
     {
-        cout << "-";
+        std::cout << "-";
     }
-    cout << "+" << endl;
+    std::cout << "+" << std::endl;
 }

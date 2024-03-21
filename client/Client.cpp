@@ -1,8 +1,6 @@
 #include "Client.hpp"
 #include "Handler.hpp"
 
-#include <iostream>
-
 Client::Client(int clientPort, string serverAddress, int serverPort, int BUFFER_SIZE, double PACKET_SEND_LOSS_PROB, double PACKET_RECV_LOSS_PROB, int MAX_RETRIES)
 {
     this->clientPort = clientPort;
@@ -93,15 +91,31 @@ void Client::startRead(string requestType)
     int bytesToRead = inputReader->getInt();
 
     cout << "You have selected to read " << bytesToRead << " bytes from " << pathname << " starting from byte " << offset << "." << endl;
-    string requestContent = requestType + ":" + pathname + ":" + to_string(offset) + ":" + to_string(bytesToRead);
+    string pathnameOffsetBytesToReady = pathname + ":" + to_string(offset) + ":" + to_string(bytesToRead);
+    string requestContent = requestType + ":" + pathnameOffsetBytesToReady;
 
-    cout << "requestContent send to Server: " << requestContent << endl;
+    if (cache.find(pathnameOffsetBytesToReady) != cache.end())
+    {
+        auto &entry = cache[pathname];
+        auto currentTime = chrono::system_clock::now();
+        auto timeSinceLastValidated = currentTime - entry.lastModified;
+        if (timeSinceLastValidated < freshnessInterval)
+        {
+            // Content is fresh, retrieve from cache
+            std::cout << "Reading from cache..." << std::endl;
+            std::cout << "Content : " << entry.content << std::endl;
+        }
+    }
+    else
+    {
+        cout << "requestContent send to Server: " << requestContent << endl;
 
-    // Send request and receive reply from server
-    string replyFromServer = handler->sendOverUDP(requestContent);
+        // Send request and receive reply from server
+        string replyFromServer = handler->sendOverUDP(requestContent);
 
-    // Process reply from server
-    processReplyFromServer(replyFromServer);
+        // Process reply from server
+        processReplyFromServer(replyFromServer);
+    }
 }
 
 void Client::startInsert(string requestType)
@@ -178,6 +192,10 @@ void Client::processReplyFromServer(string message)
         message.erase(0, pos + delimiter.length());
     }
     messageParts.push_back(message); // Push the last part
+    for (const auto &part : messageParts)
+    {
+        std::cout << "messagePart : " << part << std::endl;
+    }
 
     // Checking if we have enough parts to proceed
     if (messageParts.size() < 5)
@@ -191,14 +209,16 @@ void Client::processReplyFromServer(string message)
     string serverAddress = messageParts[2];
     string serverPort = messageParts[3];
     string replyType = messageParts[4];
-    string replyContents = concatenateFromIndex(messageParts, 5, ":");
-
+    string pathName = messageParts[5];
+    string replyContents = concatenateFromIndex(messageParts, 6, ":");
     ConsoleUI::displaySeparator('=', 41);
 
     // Switch case for different reply types
     if (replyType == "1")
     {
         cout << "Read request successful: " << replyContents << endl;
+        auto currentTime = chrono::system_clock::now();
+        cache[pathName] = {replyContents, currentTime};
     }
     else if (replyType == "1e1" || replyType == "1e2" || replyType == "1e3" || replyType == "1e4" ||
              replyType == "2" || replyType == "2e1" || replyType == "2e2" || replyType == "2e3" || replyType == "2e4")

@@ -1,9 +1,5 @@
 #include "Client.hpp"
 
-#include <string>
-#include <iostream>
-#include "../utils/UserInputReader.hpp"
-
 int main(int argc, char *argv[])
 {
     string serverAddress = "127.0.0.1";
@@ -13,9 +9,7 @@ int main(int argc, char *argv[])
     double PACKET_RECV_LOSS_PROB = 0;
     int BUFFER_SIZE = 1024;
     int MAX_RETRIES = 10;
-    UserInputReader *inputReader;
 
-    inputReader = new UserInputReader();
     if (argc > 1)
     {
         try
@@ -30,6 +24,12 @@ int main(int argc, char *argv[])
                 serverPort = stoi(argv[2]);
             }
             else if (argc == 4)
+            {
+                serverAddress = argv[1];
+                serverPort = stoi(argv[2]);
+                clientPort = stoi(argv[3]);
+            }
+            else if (argc == 5)
             {
                 serverAddress = argv[1];
                 serverPort = stoi(argv[2]);

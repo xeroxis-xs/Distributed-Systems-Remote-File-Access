@@ -5,7 +5,6 @@ import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.SocketTimeoutException;
-import java.util.Arrays;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import utils.ConsoleUI;
@@ -80,8 +79,6 @@ public class Handler {
 
             // Unmarshal the data from byte array into a String
             byte[] marshalledData = receivePacket.getData();
-            System.out.println("Marshalled Data: " + Arrays.toString(marshalledData));
-            System.out.println("Raw Message from Client: " + unmarshalledData);
             unmarshalledData = utils.Marshaller.unmarshal(marshalledData);
 
             ConsoleUI.displaySeparator('=', 41);

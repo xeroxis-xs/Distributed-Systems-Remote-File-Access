@@ -3,19 +3,17 @@
 
 #include <string>
 
-using namespace std;
-
 class UserInputReader
 {
 private:
-    string userInput;
+    std::string userInput;
 
 public:
     UserInputReader();
 
     int getInt();
     long getLong();
-    string getString();
+    std::string getString();
 };
 
 #endif

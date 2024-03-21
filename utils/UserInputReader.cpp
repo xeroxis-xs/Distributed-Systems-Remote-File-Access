@@ -7,12 +7,12 @@ int UserInputReader::getInt()
 {
     try
     {
-        getline(cin, userInput);
+        std::getline(std::cin, userInput);
         return stoi(userInput);
     }
-    catch (const exception &e)
+    catch (const std::exception &e)
     {
-        cout << "Invalid input. Please enter an integer" << endl;
+        std::cout << "Invalid input. Please enter an integer" << std::endl;
         return getInt();
     }
 }
@@ -21,31 +21,31 @@ long UserInputReader::getLong()
 {
     try
     {
-        getline(cin, userInput);
+        std::getline(std::cin, userInput);
         return stol(userInput);
     }
-    catch (const exception &e)
+    catch (const std::exception &e)
     {
-        cout << "Invalid input. Please enter an integer" << endl;
+        std::cout << "Invalid input. Please enter an integer" << std::endl;
         return getLong();
     }
 }
 
-string UserInputReader::getString()
+std::string UserInputReader::getString()
 {
     try
     {
-        getline(cin, userInput);
+        std::getline(std::cin, userInput);
         while (userInput.empty())
         {
-            cout << "Empty input. Please try again" << endl;
-            getline(cin, userInput);
+            std::cout << "Empty input. Please try again" << std::endl;
+            std::getline(std::cin, userInput);
         }
         return userInput;
     }
-    catch (const exception &e)
+    catch (const std::exception &e)
     {
-        cout << "Invalid input. Please try again" << endl;
+        std::cout << "Invalid input. Please try again" << std::endl;
         return getString();
     }
 }

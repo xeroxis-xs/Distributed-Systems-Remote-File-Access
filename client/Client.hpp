@@ -7,6 +7,8 @@
 #include "../utils/ConsoleUI.hpp"
 #include "Handler.hpp"
 #include <unordered_map>
+#include <iostream>
+#include <chrono>
 
 using namespace std;
 
@@ -21,6 +23,13 @@ private:
     UserInputReader *inputReader;
     bool isMonitoring;
 
+    struct CacheEntry
+    {
+        string content;
+        chrono::time_point<chrono::system_clock> lastModified;
+    };
+
+    chrono::seconds freshnessInterval;
     void startServices();
     void startRead(string requestType);
     void startInsert(string requestType);
@@ -29,7 +38,7 @@ private:
     void startNonIdempotent(string requestType);
     void processReplyFromServer(string message);
     string concatenateFromIndex(vector<string> &elements, int startIndex, string delimiter);
-    unordered_map<string, pair<string, long>> cache;
+    std::unordered_map<std::string, CacheEntry> cache;
 
 public:
     Client(int clientPort, string serverAddress, int serverPort, int BUFFER_SIZE, double PACKET_SEND_LOSS_PROB, double PACKET_RECV_LOSS_PROB, int MAX_RETRIES);
