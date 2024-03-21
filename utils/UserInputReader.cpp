@@ -3,36 +3,49 @@
 
 UserInputReader::UserInputReader() {}
 
-int UserInputReader::getInt() {
-    try {
-        std::getline(std::cin, userInput);
-        return std::stoi(userInput);
-    } catch (const std::exception& e) {
-        std::cout << "Invalid input. Please enter an integer" << std::endl;
+int UserInputReader::getInt()
+{
+    try
+    {
+        getline(cin, userInput);
+        return stoi(userInput);
+    }
+    catch (const exception &e)
+    {
+        cout << "Invalid input. Please enter an integer" << endl;
         return getInt();
     }
 }
 
-long UserInputReader::getLong() {
-    try {
-        std::getline(std::cin, userInput);
-        return std::stol(userInput);
-    } catch (const std::exception& e) {
-        std::cout << "Invalid input. Please enter an integer" << std::endl;
+long UserInputReader::getLong()
+{
+    try
+    {
+        getline(cin, userInput);
+        return stol(userInput);
+    }
+    catch (const exception &e)
+    {
+        cout << "Invalid input. Please enter an integer" << endl;
         return getLong();
     }
 }
 
-std::string UserInputReader::getString() {
-    try {
-        std::getline(std::cin, userInput);
-        while (userInput.empty()) {
-            std::cout << "Empty input. Please try again" << std::endl;
-            std::getline(std::cin, userInput);
+string UserInputReader::getString()
+{
+    try
+    {
+        getline(cin, userInput);
+        while (userInput.empty())
+        {
+            cout << "Empty input. Please try again" << endl;
+            getline(cin, userInput);
         }
         return userInput;
-    } catch (const std::exception& e) {
-        std::cout << "Invalid input. Please try again" << std::endl;
+    }
+    catch (const exception &e)
+    {
+        cout << "Invalid input. Please try again" << endl;
         return getString();
     }
 }

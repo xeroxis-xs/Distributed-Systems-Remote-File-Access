@@ -36,8 +36,7 @@ public class Handler {
             // Connect to Server
             this.serverAddress = new InetSocketAddress(serverAddress, serverPort);
             System.out.println("\nSuccessfully connected to " + serverAddress + ":" + serverPort);
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             e.printStackTrace();
         }
     }
@@ -48,8 +47,7 @@ public class Handler {
             this.clientPort = clientPort;
             this.socket = new DatagramSocket(this.clientPort);
             System.out.println("Client port listening at " + clientPort);
-        }
-        catch (IOException e) {
+        } catch (IOException e) {
             e.printStackTrace();
         }
     }
@@ -60,10 +58,10 @@ public class Handler {
             // Get the address of client
             InetAddress clientHost = InetAddress.getLocalHost();
             clientAddress = (clientHost.getHostAddress()).trim();
-        }
-        catch (UnknownHostException e) {
+        } catch (UnknownHostException e) {
             System.out.println("\nFailed to get localhost address: " + e.getMessage());
         }
+
         return clientAddress;
     }
 
@@ -91,10 +89,9 @@ public class Handler {
             // Create a DatagramPacket for sending data
             DatagramPacket requestPacket = new DatagramPacket(marshalledData, marshalledData.length, serverAddress);
 
-            if (Math.random() < PACKET_SEND_LOSS_PROB){
+            if (Math.random() < PACKET_SEND_LOSS_PROB) {
                 System.out.println("\n***** Simulating sending message loss from client *****");
-            }
-            else {
+            } else {
                 // Send over UDP
                 this.socket.send(requestPacket);
             }
@@ -102,13 +99,11 @@ public class Handler {
             // Receive over UDP
             unmarshalledData = this.receiveOverUDP(requestPacket);
 
-        }
-        catch (IOException e) {
+        } catch (IOException e) {
             System.out.println("\nAn IO error occurred: " + e.getMessage());
         }
         return unmarshalledData;
     }
-
 
     public String receiveOverUDP(DatagramPacket requestPacket) {
 
@@ -127,7 +122,7 @@ public class Handler {
                 // Set timeout for 5 seconds
                 this.socket.setSoTimeout(timeout);
 
-                if (Math.random() < PACKET_RECV_LOSS_PROB){
+                if (Math.random() < PACKET_RECV_LOSS_PROB) {
                     System.out.println("\n***** Simulating receiving message loss from server *****");
                     continue;
                 }
@@ -144,8 +139,7 @@ public class Handler {
                 ConsoleUI.displaySeparator('=', 41);
 
                 break;
-            }
-            catch (SocketTimeoutException e) {
+            } catch (SocketTimeoutException e) {
                 retries++;
                 System.out.println("\nTimeout occurred while waiting for response from server.");
                 System.out.println("Retransmitting request to server. Retry (" + retries + ")\n");
@@ -153,14 +147,12 @@ public class Handler {
                 try {
                     // Resending
                     this.socket.send(requestPacket);
-                }
-                catch (IOException ioe) {
+                } catch (IOException ioe) {
                     System.out.println("\nError retransmitting. Exiting... ");
                     System.out.println("An IO error occurred: " + ioe.getMessage());
                     System.exit(1);
                 }
-            }
-            catch (IOException e) {
+            } catch (IOException e) {
                 System.out.println("\nAn IO error occurred: " + e.getMessage());
             }
         }
@@ -184,7 +176,7 @@ public class Handler {
             // Remove any timeout since it is blocking operation
             this.socket.setSoTimeout(timeout);
 
-            if (Math.random() < PACKET_RECV_LOSS_PROB){
+            if (Math.random() < PACKET_RECV_LOSS_PROB) {
                 System.out.println("\n***** Simulating receiving message loss from server *****");
                 return unmarshalledData;
             }
@@ -199,8 +191,7 @@ public class Handler {
             ConsoleUI.displaySeparator('=', 41);
             System.out.println("Raw Message from Server: " + unmarshalledData);
             ConsoleUI.displaySeparator('=', 41);
-        }
-        catch (IOException e) {
+        } catch (IOException e) {
             System.out.println("\nAn IOO error occurred: " + e.getMessage());
         }
 

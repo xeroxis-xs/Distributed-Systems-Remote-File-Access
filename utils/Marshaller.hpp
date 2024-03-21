@@ -4,11 +4,14 @@
 #include <string>
 #include <vector>
 
-class Marshaller {
-public:
-    static std::vector<char> marshal(const std::string& stringValue);
+using namespace std;
 
-    static std::string unmarshal(const std::vector<char>& data);
+class Marshaller
+{
+public:
+    static vector<char> marshal(const string &stringValue);
+
+    static string unmarshal(const vector<char> &data);
 };
 
-#endif 
+#endif

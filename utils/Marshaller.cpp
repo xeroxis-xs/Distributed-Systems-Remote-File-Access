@@ -2,31 +2,48 @@
 #include <sstream>
 #include <stdexcept>
 
-std::vector<char> Marshaller::marshal(const std::string& stringValue) {
-    std::vector<char> byteArray;
-    try {
+vector<char> Marshaller::marshal(const string &stringValue)
+{
+    vector<char> byteArray;
+    try
+    {
         // Write string value
-        std::stringstream ss;
-        ss << stringValue;
-        std::string temp = ss.str();
-        byteArray.insert(byteArray.end(), temp.begin(), temp.end());
+        // stringstream ss;
+        // ss << stringValue;
+        // string temp = ss.str();
+        // byteArray.insert(byteArray.end(), temp.begin(), temp.end());
+        short length = static_cast<short>(stringValue.size());
+        byteArray.push_back((length >> 8) & 0xFF);
+        byteArray.push_back(length & 0xFF);
+
+        // Write string characters
+        byteArray.insert(byteArray.end(), stringValue.begin(), stringValue.end());
     }
-    catch (const std::exception& e) {
+    catch (const exception &e)
+    {
         // Handle exceptions
-        throw std::runtime_error(e.what());
+        throw runtime_error(e.what());
     }
     return byteArray;
 }
 
-std::string Marshaller::unmarshal(const std::vector<char>& data) {
-    std::string stringValue;
-    try {
+string Marshaller::unmarshal(const vector<char> &data)
+{
+    string stringValue;
+    try
+    {
         // Read string value
-        stringValue.assign(data.begin(), data.end());
+        // stringValue.assign(data.begin(), data.end());
+
+        short length = (static_cast<unsigned char>(data[0]) << 8) | static_cast<unsigned char>(data[1]);
+
+        // Read string characters
+        stringValue.assign(data.begin() + 2, data.begin() + 2 + length);
     }
-    catch (const std::exception& e) {
+    catch (const exception &e)
+    {
         // Handle exceptions
-        throw std::runtime_error(e.what());
+        throw runtime_error(e.what());
     }
     return stringValue;
 }

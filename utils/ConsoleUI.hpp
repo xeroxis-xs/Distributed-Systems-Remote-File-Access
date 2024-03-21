@@ -3,15 +3,18 @@
 
 #include <string>
 
-class ConsoleUI {
+using namespace std;
+
+class ConsoleUI
+{
 public:
     static void displaySeparator(char separatorChar, int length);
-    static void displayMessage(const std::string& message);
-    static void displayPrompt(const std::string& prompt);
-    static void displayBox(const std::string& text);
+    static void displayMessage(const string &message);
+    static void displayPrompt(const string &prompt);
+    static void displayBox(const string &text);
 
 private:
     static void printHorizontalLine(int length);
 };
 
-#endif 
+#endif

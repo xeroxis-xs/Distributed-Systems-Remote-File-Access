@@ -1,166 +1,235 @@
 #include "Handler.hpp"
-#include "../utils/Marshaller.hpp"
-#include <iostream>
-#include <cstring>
-#include <vector>
 
 Handler::Handler(int BUFFER_SIZE, double PACKET_SEND_LOSS_PROB, double PACKET_RECV_LOSS_PROB, int MAX_RETRIES)
     : BUFFER_SIZE(BUFFER_SIZE), PACKET_SEND_LOSS_PROB(PACKET_SEND_LOSS_PROB),
-      PACKET_RECV_LOSS_PROB(PACKET_RECV_LOSS_PROB), MAX_RETRIES(MAX_RETRIES), requestIdCounter(0) {
-        clientAddress = getClientAddress();
-      }
+      PACKET_RECV_LOSS_PROB(PACKET_RECV_LOSS_PROB), MAX_RETRIES(MAX_RETRIES), requestIdCounter(0)
+{
+    clientAddress = getClientAddress();
+}
 
+string Handler::getClientAddress()
+{
+    WSADATA wsaData;
+    int result = WSAStartup(MAKEWORD(2, 2), &wsaData);
 
-string Handler::getClientAddress() {
+    if (result != 0)
+    {
+        cerr << "WSAStartup failed: " << result << endl;
+        return "1";
+    }
     char buffer[256];
-    if (gethostname(buffer, sizeof(buffer)) == SOCKET_ERROR) {
-        std::cerr << "Error getting hostname: " << WSAGetLastError() << std::endl;
+    char computerName[MAX_COMPUTERNAME_LENGTH + 1];
+    DWORD size = sizeof(computerName);
+
+    if (GetComputerNameA(computerName, &size))
+    {
+        cout << "Hostname: " << computerName << endl;
+    }
+    else
+    {
+        cerr << "Failed to get hostname." << endl;
         exit(EXIT_FAILURE);
     }
+    struct addrinfo *resultAddr = nullptr;
+    struct addrinfo hints;
 
-    struct hostent* h = gethostbyname(buffer);
-    if (h == NULL) {
-        std::cerr << "Error getting host information: " << WSAGetLastError() << std::endl;
-        exit(EXIT_FAILURE);
-    }
+    ZeroMemory(&hints, sizeof(hints));
+    hints.ai_family = AF_INET; // IPv4
+    hints.ai_socktype = SOCK_STREAM;
+    hints.ai_protocol = IPPROTO_TCP;
 
-    struct in_addr addr;
-    memcpy(&addr, h->h_addr_list[0], h->h_length);
-    return inet_ntoa(addr);
-}
-
-
-
-void Handler::connectToServer(std::string serverAddress, int serverPort) {
-    this->serverAddress.sin_family = AF_INET;
-    this->serverAddress.sin_addr.s_addr = inet_addr(serverAddress.c_str());
-    this->serverAddress.sin_port = htons(serverPort);
-    std::cout << "\nSuccessfully connected to " << serverAddress << ":" << serverPort << std::endl;
-}
-
-void Handler::openPort(int clientPort) {
-    this->clientPort = clientPort;
-    this->socketDescriptor = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
-    if (this->socketDescriptor == INVALID_SOCKET) {
-        std::cerr << "Error creating socket: " << WSAGetLastError() << std::endl;
-        exit(EXIT_FAILURE);
-    }
-
-    SOCKADDR_IN clientAddress;
-    clientAddress.sin_family = AF_INET;
-    clientAddress.sin_addr.s_addr = htonl(INADDR_ANY);
-    clientAddress.sin_port = htons(clientPort);
-
-    if (bind(this->socketDescriptor, (SOCKADDR*)&clientAddress, sizeof(clientAddress)) == SOCKET_ERROR) {
-        std::cerr << "Bind failed with error: " << WSAGetLastError() << std::endl;
-        closesocket(this->socketDescriptor);
+    result = getaddrinfo(computerName, nullptr, &hints, &resultAddr);
+    if (result != 0)
+    {
+        cerr << "getaddrinfo failed: " << result << endl;
         WSACleanup();
         exit(EXIT_FAILURE);
     }
 
-    std::cout << "Client port listening at " << clientPort << std::endl;
+    struct sockaddr_in *addr = reinterpret_cast<struct sockaddr_in *>(resultAddr->ai_addr);
+    char ipStr[INET_ADDRSTRLEN];
+    inet_ntop(AF_INET, &(addr->sin_addr), ipStr, INET_ADDRSTRLEN);
+
+    cout << "Host IP Address: " << ipStr << endl;
+
+    freeaddrinfo(resultAddr);
+    WSACleanup();
+    return ipStr;
 }
 
-void Handler::disconnect() {
+string Handler::generateRequestId(string clientAddress, int clientPort)
+{
+    return to_string(this->requestIdCounter++) + ":" + clientAddress + ":" + to_string(clientPort);
+}
+
+void Handler::connectToServer(string serverAddress, int serverPort)
+{
+    this->serverAddress.sin_family = AF_INET;
+    this->serverAddress.sin_addr.s_addr = inet_addr(serverAddress.c_str());
+    this->serverAddress.sin_port = htons(serverPort);
+    cout << "\nSuccessfully connected to " << serverAddress << ":" << serverPort << endl;
+}
+
+void Handler::openPort(int clientPort)
+{
+    try
+    {
+        this->clientPort = clientPort;
+        cerr << "openPort : clientPort: " << clientPort << endl;
+
+        WSADATA wsaData;
+        if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0)
+        {
+            throw runtime_error("WSAStartup failed");
+        }
+
+        this->socketDescriptor = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+        if (this->socketDescriptor == INVALID_SOCKET)
+        {
+            throw runtime_error("Error creating socket");
+        }
+
+        SOCKADDR_IN clientAddress;
+        clientAddress.sin_family = AF_INET;
+        clientAddress.sin_addr.s_addr = htonl(INADDR_ANY);
+        clientAddress.sin_port = htons(clientPort);
+
+        if (bind(this->socketDescriptor, reinterpret_cast<SOCKADDR *>(&clientAddress), sizeof(clientAddress)) == SOCKET_ERROR)
+        {
+            throw runtime_error("Bind failed");
+        }
+
+        cout << "Client port listening at " << clientPort << endl;
+    }
+    catch (const exception &e)
+    {
+        cerr << e.what() << endl;
+        closesocket(this->socketDescriptor);
+        WSACleanup();
+        exit(EXIT_FAILURE);
+    }
+}
+
+void Handler::disconnect()
+{
     closesocket(this->socketDescriptor);
     WSACleanup();
 }
 
-std::string Handler::sendOverUDP(std::string requestContent) {
-    std::string unmarshalledData;
-    try {
+string Handler::sendOverUDP(string requestContent)
+{
+    string unmarshalledData;
+    try
+    {
         // Create the message payload structure
-        std::string messageType = "0";
-        std::string requestId = this->generateRequestId(this->clientAddress, this->clientPort);
-        std::string message = messageType + ":" + requestId + ":" + requestContent;
+        string messageType = "0";
+        string requestId = this->generateRequestId(this->clientAddress, this->clientPort);
+        string message = messageType + ":" + requestId + ":" + requestContent;
 
         // Marshal the data into a byte array
-        std::vector<char> marshalledData = Marshaller::marshal(message);
+        vector<char> marshalledData = Marshaller::marshal(message);
 
         // Send data over UDP
         int bytesSent = sendto(this->socketDescriptor, marshalledData.data(), marshalledData.size(), 0,
-                               (SOCKADDR*)&this->serverAddress, sizeof(this->serverAddress));
-        if (bytesSent == SOCKET_ERROR) {
-            std::cerr << "Send failed with error: " << WSAGetLastError() << std::endl;
+                               (SOCKADDR *)&this->serverAddress, sizeof(this->serverAddress));
+        if (bytesSent == SOCKET_ERROR)
+        {
+            cerr << "Send failed with error: " << WSAGetLastError() << endl;
             return "";
         }
 
         // Receive over UDP
         unmarshalledData = this->receiveOverUDP(this->socketDescriptor);
-
-    } catch (std::exception& e) {
-        std::cerr << "\nAn error occurred: " << e.what() << std::endl;
+    }
+    catch (exception &e)
+    {
+        cerr << "\nAn error occurred: " << e.what() << endl;
     }
     return unmarshalledData;
 }
 
-
-string Handler::receiveOverUDP(SOCKET socket) {
-    std::string unmarshalledData;
+string Handler::receiveOverUDP(SOCKET socket)
+{
+    string unmarshalledData;
+    string unmarshalledDataAssign;
     int timeout = 5000;
 
     // Prepare a byte buffer to store received data
-    std::vector<char> buffer(BUFFER_SIZE);
+    vector<char> buffer(BUFFER_SIZE);
 
     // Create a sockaddr structure for the server address
     SOCKADDR_IN serverAddr;
     int serverAddrLen = sizeof(serverAddr);
 
     int retries = 0;
-    while (retries < MAX_RETRIES) {
-        try {
+    while (retries < MAX_RETRIES)
+    {
+        try
+        {
             // Set timeout for 5 seconds
-            setsockopt(socket, SOL_SOCKET, SO_RCVTIMEO, (char*)&timeout, sizeof(timeout));
+            setsockopt(socket, SOL_SOCKET, SO_RCVTIMEO, (char *)&timeout, sizeof(timeout));
 
             // Receive data from server over UDP
-            int bytesReceived = recvfrom(socket, buffer.data(), buffer.size(), 0, (SOCKADDR*)&serverAddr, &serverAddrLen);
-            if (bytesReceived == SOCKET_ERROR) {
-                std::cerr << "Receive failed with error: " << WSAGetLastError() << std::endl;
-                return "";
+            int bytesReceived = recvfrom(socket, buffer.data(), buffer.size(), 0, (SOCKADDR *)&serverAddr, &serverAddrLen);
+            if (bytesReceived == SOCKET_ERROR)
+            {
+                throw runtime_error("Receive failed with error: " + to_string(WSAGetLastError()));
             }
 
             // Unmarshal the data into a String
             unmarshalledData = Marshaller::unmarshal(buffer);
 
-            std::cout << "Raw Message from Server: " << unmarshalledData << std::endl;
+            cout << "Raw Message from Server: " << unmarshalledData << endl;
+
+            unmarshalledDataAssign.assign(buffer.begin(), buffer.begin() + bytesReceived);
+
+            cout << "Raw Message from Server unmarshalledData.assign:  " << unmarshalledDataAssign << endl;
 
             break;
-        } catch (std::exception& e) {
-            std::cerr << "\nAn error occurred: " << e.what() << std::endl;
+        }
+        catch (exception &e)
+        {
+            cerr << "\nAn error occurred: " << e.what() << endl;
+            retries++;
         }
     }
 
     return unmarshalledData;
 }
 
-string Handler::monitorOverUDP() {
-    std::string unmarshalledData;
+string Handler::monitorOverUDP()
+{
+    string unmarshalledData;
     int timeout = 0;
 
     // Prepare a byte buffer to store received data
-    std::vector<char> buffer(BUFFER_SIZE);
+    vector<char> buffer(BUFFER_SIZE);
 
     // Create a sockaddr structure for the server address
     SOCKADDR_IN serverAddr;
     int serverAddrLen = sizeof(serverAddr);
 
-    try {
+    try
+    {
         // Remove any timeout since it is a blocking operation
-        setsockopt(this->socketDescriptor, SOL_SOCKET, SO_RCVTIMEO, (char*)&timeout, sizeof(timeout));
+        setsockopt(this->socketDescriptor, SOL_SOCKET, SO_RCVTIMEO, (char *)&timeout, sizeof(timeout));
 
         // Receive data from server over UDP
-        int bytesReceived = recvfrom(this->socketDescriptor, buffer.data(), buffer.size(), 0, (SOCKADDR*)&serverAddr, &serverAddrLen);
-        if (bytesReceived == SOCKET_ERROR) {
-            std::cerr << "Receive failed with error: " << WSAGetLastError() << std::endl;
+        int bytesReceived = recvfrom(this->socketDescriptor, buffer.data(), buffer.size(), 0, (SOCKADDR *)&serverAddr, &serverAddrLen);
+        if (bytesReceived == SOCKET_ERROR)
+        {
+            cerr << "Receive failed with error: " << WSAGetLastError() << endl;
             return "";
         }
 
         // Unmarshal the data into a String
         unmarshalledData = Marshaller::unmarshal(buffer);
 
-        std::cout << "Raw Message from Server: " << unmarshalledData << std::endl;
-    } catch (std::exception& e) {
-        std::cerr << "\nAn error occurred: " << e.what() << std::endl;
+        cout << "Raw Message from Server: " << unmarshalledData << endl;
+    }
+    catch (exception &e)
+    {
+        cerr << "\nAn error occurred: " << e.what() << endl;
     }
 
     return unmarshalledData;

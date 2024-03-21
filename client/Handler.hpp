@@ -6,14 +6,16 @@
 #include <iostream>
 #include <vector>
 #include <atomic>
+#include <Windows.h>
+#include <WS2tcpip.h>
 #include "../utils/Marshaller.hpp"
 
 #pragma comment(lib, "Ws2_32.lib")
 
-
 using namespace std;
 
-class Handler {
+class Handler
+{
 private:
     int BUFFER_SIZE;
     double PACKET_SEND_LOSS_PROB;
@@ -27,8 +29,6 @@ private:
 
 public:
     Handler(int BUFFER_SIZE, double PACKET_SEND_LOSS_PROB, double PACKET_RECV_LOSS_PROB, int MAX_RETRIES);
-
-
 
     string getClientAddress();
     string generateRequestId(string clientAddress, int clientPort);
