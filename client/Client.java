@@ -161,12 +161,47 @@ public class Client {
         
     }
 
+    //Deleting Files
     private void startIdempotent(String requestType) {
+        System.out.println("\nEnter the pathname of the target file to delete: ");
+        System.out.println("E.g. server/storage/hello.txt");
+        String pathname = ig.getString();
 
+        System.out.println("You have selected to delete '"+ pathname + ".");
+        String requestContent = requestType + ":" + pathname;
+
+        // Send request and receive reply from server
+        String replyFromServer = handler.sendOverUDP(requestContent);
+
+        // Process reply from server
+        processReplyFromServer(replyFromServer);
     }
 
     private void startNonIdempotent(String requestType) {
+        System.out.println("\nEnter the pathname of the target file to be read: ");
+        System.out.println("E.g. server/storage/hello.txt");
+        String srcPath = ig.getString();
 
+        System.out.println("\nEnter the offset of the file content (in bytes) to read from: ");
+        System.out.println("E.g. 0");
+        long offset = ig.getLong();
+
+        System.out.println("\nEnter the number of bytes to read: ");
+        System.out.println("E.g. 2");
+        int bytesToRead = ig.getInt();
+
+        System.out.println("\nEnter the pathname of the target file to be concatenated to: ");
+        System.out.println("E.g. server/storage/hello.txt");
+        String targetPath = ig.getString();
+
+        System.out.println("You have selected to read " + bytesToRead + " bytes from " + srcPath + " starting from byte " + offset + ", and appending it to the back of " + targetPath + ".");
+        String requestContent = requestType + ":" + srcPath + ":" + offset + ":" + bytesToRead + ":" + targetPath;
+        
+        // Send request and receive reply from server
+        String replyFromServer = handler.sendOverUDP(requestContent);
+
+        // Process reply from server
+        processReplyFromServer(replyFromServer);
     }
 
     private void processReplyFromServer(String message) {
