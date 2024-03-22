@@ -35,6 +35,7 @@ public:
     string receiveOverUDP(SOCKET socket);
     string sendOverUDP(string requestContent);
     string monitorOverUDP();
+    string GetWSAErrorMessage(int errorCode);
 
     void connectToServer(string serverAddress, int serverPort);
     void openPort(int clientPort);

@@ -10,7 +10,7 @@
 #include <iostream>
 #include <chrono>
 
-using namespace std;
+using std::string, std::chrono::system_clock, std::chrono::milliseconds, std::chrono::duration_cast;
 
 class Client
 {
@@ -26,10 +26,11 @@ private:
     struct CacheEntry
     {
         string content;
-        chrono::time_point<chrono::system_clock> lastModified;
+        long long Tc;
+        long long Tmclient;
     };
 
-    chrono::seconds freshnessInterval;
+    long freshnessInterval;
     void startServices();
     void startRead(string requestType);
     void startInsert(string requestType);
@@ -41,9 +42,10 @@ private:
     std::unordered_map<std::string, CacheEntry> cache;
 
 public:
-    Client(int clientPort, string serverAddress, int serverPort, int BUFFER_SIZE, double PACKET_SEND_LOSS_PROB, double PACKET_RECV_LOSS_PROB, int MAX_RETRIES);
+    Client(int clientPort, string serverAddress, int serverPort, int BUFFER_SIZE, double PACKET_SEND_LOSS_PROB, double PACKET_RECV_LOSS_PROB, int MAX_RETRIES, long freshnessInterval);
 
     void startConnection();
+    void printCacheContent();
 };
 
 #endif

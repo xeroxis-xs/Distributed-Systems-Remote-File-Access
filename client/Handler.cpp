@@ -75,7 +75,6 @@ void Handler::openPort(int clientPort)
     try
     {
         this->clientPort = clientPort;
-        cerr << "openPort : clientPort: " << clientPort << endl;
 
         WSADATA wsaData;
         if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0)
@@ -173,17 +172,13 @@ string Handler::receiveOverUDP(SOCKET socket)
             int bytesReceived = recvfrom(socket, buffer.data(), buffer.size(), 0, (SOCKADDR *)&serverAddr, &serverAddrLen);
             if (bytesReceived == SOCKET_ERROR)
             {
-                throw runtime_error("Receive failed with error: " + to_string(WSAGetLastError()));
+                throw runtime_error("Receive failed with error: " + GetWSAErrorMessage(WSAGetLastError()));
             }
 
             // Unmarshal the data into a String
             unmarshalledData = Marshaller::unmarshal(buffer);
 
-            cout << "Raw Message from Server: " << unmarshalledData << endl;
-
-            unmarshalledDataAssign.assign(buffer.begin(), buffer.begin() + bytesReceived);
-
-            cout << "Raw Message from Server unmarshalledData.assign:  " << unmarshalledDataAssign << endl;
+            cout << "\nRaw Message from Server: " << unmarshalledData << endl;
 
             break;
         }
@@ -233,4 +228,30 @@ string Handler::monitorOverUDP()
     }
 
     return unmarshalledData;
+}
+
+string Handler::GetWSAErrorMessage(int errorCode)
+{
+    std::string errorMessage;
+    LPSTR messageBuffer = nullptr;
+
+    FormatMessageA(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+                   nullptr,
+                   errorCode,
+                   MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+                   reinterpret_cast<LPSTR>(&messageBuffer),
+                   0,
+                   nullptr);
+
+    if (messageBuffer)
+    {
+        errorMessage = messageBuffer;
+        LocalFree(messageBuffer);
+    }
+    else
+    {
+        errorMessage = "Unknown error";
+    }
+
+    return errorMessage;
 }

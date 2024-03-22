@@ -9,6 +9,7 @@ int main(int argc, char *argv[])
     double PACKET_RECV_LOSS_PROB = 0;
     int BUFFER_SIZE = 1024;
     int MAX_RETRIES = 10;
+    long freshnessInterval;
 
     if (argc > 1)
     {
@@ -34,6 +35,7 @@ int main(int argc, char *argv[])
                 serverAddress = argv[1];
                 serverPort = stoi(argv[2]);
                 clientPort = stoi(argv[3]);
+                freshnessInterval = stoi(argv[4]);
             }
             else
             {
@@ -51,7 +53,7 @@ int main(int argc, char *argv[])
     cout << "Initialising: Server address set to " << serverAddress << endl;
     cout << "Initialising: Server port set to " << serverPort << endl;
 
-    Client client(clientPort, serverAddress, serverPort, BUFFER_SIZE, PACKET_SEND_LOSS_PROB, PACKET_RECV_LOSS_PROB, MAX_RETRIES);
+    Client client(clientPort, serverAddress, serverPort, BUFFER_SIZE, PACKET_SEND_LOSS_PROB, PACKET_RECV_LOSS_PROB, MAX_RETRIES, freshnessInterval);
     client.startConnection();
 
     return 0;

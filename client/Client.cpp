@@ -1,11 +1,17 @@
 #include "Client.hpp"
 #include "Handler.hpp"
 
-Client::Client(int clientPort, string serverAddress, int serverPort, int BUFFER_SIZE, double PACKET_SEND_LOSS_PROB, double PACKET_RECV_LOSS_PROB, int MAX_RETRIES)
+#include <algorithm>
+#include <iomanip>
+#include <sstream>
+using std::replace;
+
+Client::Client(int clientPort, string serverAddress, int serverPort, int BUFFER_SIZE, double PACKET_SEND_LOSS_PROB, double PACKET_RECV_LOSS_PROB, int MAX_RETRIES, long freshnessInterval)
 {
     this->clientPort = clientPort;
     this->serverAddress = serverAddress;
     this->serverPort = serverPort;
+    this->freshnessInterval = freshnessInterval;
     handler = new Handler(BUFFER_SIZE, PACKET_SEND_LOSS_PROB, PACKET_RECV_LOSS_PROB, MAX_RETRIES);
     inputReader = new UserInputReader();
     isMonitoring = false;
@@ -96,14 +102,27 @@ void Client::startRead(string requestType)
 
     if (cache.find(pathnameOffsetBytesToReady) != cache.end())
     {
-        auto &entry = cache[pathname];
-        auto currentTime = chrono::system_clock::now();
-        auto timeSinceLastValidated = currentTime - entry.lastModified;
-        if (timeSinceLastValidated < freshnessInterval)
+        auto &entry = cache[pathnameOffsetBytesToReady];
+        auto currentTime = system_clock::now();
+        system_clock::duration epochTime = currentTime.time_since_epoch();
+        milliseconds milliseconds = duration_cast<chrono::milliseconds>(epochTime);
+
+        long long millisecondsCount = milliseconds.count();
+
+        auto timeSinceLastValidated = millisecondsCount - entry.Tc;
+
+        if (timeSinceLastValidated < (freshnessInterval * 1000))
         {
             // Content is fresh, retrieve from cache
-            std::cout << "Reading from cache..." << std::endl;
+            std::cout << "Reading from client cache..." << std::endl;
             std::cout << "Content : " << entry.content << std::endl;
+        }
+        else
+        {
+            // Issue getattr call to server to obtain Tmserver
+            string requestTmserverContent = "6:" + pathnameOffsetBytesToReady;
+            string replyFromServer = handler->sendOverUDP(requestTmserverContent);
+            processReplyFromServer(replyFromServer);
         }
     }
     else
@@ -192,10 +211,6 @@ void Client::processReplyFromServer(string message)
         message.erase(0, pos + delimiter.length());
     }
     messageParts.push_back(message); // Push the last part
-    for (const auto &part : messageParts)
-    {
-        std::cout << "messagePart : " << part << std::endl;
-    }
 
     // Checking if we have enough parts to proceed
     if (messageParts.size() < 5)
@@ -209,39 +224,116 @@ void Client::processReplyFromServer(string message)
     string serverAddress = messageParts[2];
     string serverPort = messageParts[3];
     string replyType = messageParts[4];
-    string pathName = messageParts[5];
-    string replyContents = concatenateFromIndex(messageParts, 6, ":");
+    string replyContents = concatenateFromIndex(messageParts, 5, ":");
+
     ConsoleUI::displaySeparator('=', 41);
 
     // Switch case for different reply types
     if (replyType == "1")
     {
-        cout << "Read request successful: " << replyContents << endl;
-        auto currentTime = chrono::system_clock::now();
-        cache[pathName] = {replyContents, currentTime};
+        cout << "\nRead request successful: " << replyContents << endl;
+        auto currentTime = system_clock::now();
+        system_clock::duration epochTime = currentTime.time_since_epoch();
+        milliseconds milliseconds = duration_cast<chrono::milliseconds>(epochTime);
+
+        long long millisecondsCountCurrentTime = milliseconds.count();
+        string pathName = messageParts[5];
+
+        size_t pos = pathName.find_last_of('-');
+        string tmserver = pathName.substr(pos + 1);
+
+        pathName.erase(pos);
+
+        replace(pathName.begin(), pathName.end(), '-', ':');
+
+        replyContents = concatenateFromIndex(messageParts, 6, ":");
+
+        CacheEntry entry;
+        entry.Tc = millisecondsCountCurrentTime;
+
+        long long Tmserver = std::stoll(tmserver);
+        entry.Tmclient = Tmserver;
+        entry.content = replyContents;
+        cache[pathName] = entry;
+
+        cout << "\nFile content is cached to client: " << endl;
     }
     else if (replyType == "1e1" || replyType == "1e2" || replyType == "1e3" || replyType == "1e4" ||
              replyType == "2" || replyType == "2e1" || replyType == "2e2" || replyType == "2e3" || replyType == "2e4")
     {
-        cout << "Read/Insert request failed: " << replyContents << endl;
+        cout << "\nRead/Insert request failed: " << replyContents << endl;
     }
     else if (replyType == "3")
     {
-        cout << "Monitor request successful: " << replyContents << endl;
+        cout << "\nMonitor request successful: " << replyContents << endl;
         isMonitoring = true;
     }
     else if (replyType == "3e1")
     {
-        cout << "Monitor update: " << replyContents << endl;
+        cout << "\nMonitor update: " << replyContents << endl;
     }
     else if (replyType == "3e2")
     {
-        cout << "Monitor request ended: " << replyContents << endl;
+        cout << "\nMonitor request ended: " << replyContents << endl;
         isMonitoring = false;
     }
     else if (replyType == "3e3")
     {
-        cout << "Monitor request failed: " << replyContents << endl;
+        cout << "\nMonitor request failed: " << replyContents << endl;
+    }
+    else if (replyType == "6")
+    {
+        cout << "\nGet Tmserver successful " << endl;
+        try
+        {
+
+            string pathName = messageParts[5];
+
+            auto currentTime = system_clock::now();
+            system_clock::duration epochTime = currentTime.time_since_epoch();
+            milliseconds milliseconds = duration_cast<chrono::milliseconds>(epochTime);
+
+            long long millisecondsCountCurrentTime = milliseconds.count();
+
+            size_t pos = pathName.find_last_of('-');
+            string tmserver = pathName.substr(pos + 1);
+
+            long long Tmserver = std::stoll(tmserver);
+            pathName.erase(pos);
+
+            replace(pathName.begin(), pathName.end(), '-', ':');
+
+            replyContents = concatenateFromIndex(messageParts, 6, ":");
+
+            if (cache.find(pathName) != cache.end())
+            {
+                auto &entry = cache[pathName];
+
+                if (entry.Tmclient == Tmserver)
+                {
+                    cout << "\nEntry is valid. Updating Tc to current time. " << endl;
+                    entry.Tc = millisecondsCountCurrentTime;
+                }
+                else if (entry.Tmclient < Tmserver)
+                {
+                    cout << "\nEntry is invalidated, A request is sent to server for updated data. " << endl;
+                    string requestContent = "1:" + pathName;
+                    string replyFromServer = handler->sendOverUDP(requestContent);
+
+                    // Process reply from server
+                    processReplyFromServer(replyFromServer);
+                }
+            }
+        }
+        catch (exception &e)
+        {
+            cout << "\nGet Tmserver successful failed" << endl;
+            cout << e.what() << endl;
+        }
+    }
+    else if (replyType == "6e1")
+    {
+        cout << "\nFile timestamp get failed: " << replyContents << endl;
     }
     else
     {
@@ -249,6 +341,8 @@ void Client::processReplyFromServer(string message)
     }
 
     ConsoleUI::displaySeparator('=', 41);
+
+    printCacheContent();
 }
 
 string Client::concatenateFromIndex(vector<string> &elements, int startIndex, string delimiter)
@@ -261,4 +355,24 @@ string Client::concatenateFromIndex(vector<string> &elements, int startIndex, st
             concatenatedString += delimiter;
     }
     return concatenatedString;
+}
+
+void Client::printCacheContent()
+{
+    // Iterate through the cache
+    for (const auto &entry : cache)
+    {
+        std::cout << "Key: " << entry.first << std::endl;
+        std::cout << "Content: " << entry.second.content << std::endl;
+
+        // Convert Tc to local time
+        auto Tc_local = system_clock::to_time_t(system_clock::time_point(milliseconds(entry.second.Tc)));
+        std::cout << "Tc (Local Time): " << std::put_time(std::localtime(&Tc_local), "%F %T") << std::endl;
+
+        // Convert Tmclient to local time
+        auto Tmclient_local = system_clock::to_time_t(system_clock::time_point(milliseconds(entry.second.Tmclient)));
+        std::cout << "Tmclient (Local Time): " << std::put_time(std::localtime(&Tmclient_local), "%F %T") << std::endl;
+
+        std::cout << std::endl;
+    }
 }

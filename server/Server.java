@@ -168,7 +168,12 @@ public class Server {
                     // Convert the bytes to a String
                     content = new String(buffer, 0, bytesRead);
                     System.out.println("Server: File content: " + content);
-                    content = "1:" + filePath + ":" + content;
+                    long cachedTimestamp = 0;
+                    if (fileTimestamps.containsKey(filePath)) {
+                        cachedTimestamp = fileTimestamps.get(filePath);
+                    }
+                    content = "1:" + filePath + "-" + offset + "-" + bytesToRead + "-" + cachedTimestamp + ":"
+                            + content;
                 }
             } catch (IOException e) {
                 System.out.println("Server: Error: Error reading file!");
@@ -386,9 +391,12 @@ public class Server {
 
         String[] requestContentsParts = requestContents.split(":");
         String filePath = requestContentsParts[0];
+        long offset = Long.parseLong(requestContentsParts[1]);
+        int bytesToRead = Integer.parseInt(requestContentsParts[2].trim());
 
         System.out.println("Server: Filepath: " + filePath);
-
+        System.out.println("Server: Offset: " + offset);
+        System.out.println("Server: Bytes: " + bytesToRead);
         File file = new File(filePath);
         String content = "";
 
@@ -398,18 +406,19 @@ public class Server {
             if (fileTimestamps.containsKey(filePath)) {
                 long cachedTimestamp = fileTimestamps.get(filePath);
 
-                content = "6:File to get timestamp found. Found modified action. Retrieved Tmserver t:"
-                        + Long.toString(cachedTimestamp);
+                content = "6:" + filePath + "-" + offset + "-" + bytesToRead + "-" + Long.toString(cachedTimestamp)
+                        + ":File to get timestamp found. Found existing timestamp";
 
             } else {
-                content = "6:File to get timestamp found. No modified action "
-                        + Long.toString(System.currentTimeMillis());
+                content = "6:" + filePath + "-" + offset + "-" + bytesToRead + "-" + Long.toString(0)
+                        + ":File to get timestamp found. No modified action ";
             }
         } else {
             System.out.println("Server: File to get timestamp not found!");
             content = "6e1:File to get timestamp not found. Failed to get Tmserver for file.";
         }
 
+        System.out.println("Server: getFileTimeStamp content: " + content);
         handler.sendOverUDP(clientAddress, clientPort, content);
     }
 
