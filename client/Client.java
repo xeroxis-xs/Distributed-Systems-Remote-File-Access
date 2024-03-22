@@ -190,7 +190,7 @@ public class Client {
         System.out.println("E.g. 2");
         int bytesToRead = ig.getInt();
 
-        System.out.println("\nEnter the pathname of the target file to be concatenated to: ");
+        System.out.println("\nEnter the pathname of the target file to be appended to: ");
         System.out.println("E.g. server/storage/hello.txt");
         String targetPath = ig.getString();
 
@@ -267,7 +267,36 @@ public class Client {
             case "3e3":
                 System.out.println("Monitor request failed: " + replyContents);
                 break;
-            
+            case "4":
+                System.out.println("Delete request successful: " + replyContents);
+                break;
+            case "4e1":
+                System.out.println("Delete request failed: " + replyContents);
+                break;
+            case "4e2":
+                System.out.println("Delete request failed: " + replyContents);
+                break;
+            case "5":
+                System.out.println("File appended successful: " + replyContents);
+                break;
+            case "5e1":
+                System.out.println("Read source file request failed: " + replyContents);
+                break;
+            case "5e2":
+                System.out.println("Read source file request failed: " + replyContents);    
+                break;
+            case "5e3":
+                System.out.println("Read source file request failed: " + replyContents);
+                break;
+            case "5e4":
+                System.out.println("Read source file request failed: " + replyContents);
+                break;
+            case "5e5":
+                System.out.println("Append to target file request failed: " + replyContents);
+                break;
+            case "5e6":
+                System.out.println("Append to target file request failed: " + replyContents);
+                break;
             default:
                 System.out.println("Other server reply: " + replyContents);
                 break;

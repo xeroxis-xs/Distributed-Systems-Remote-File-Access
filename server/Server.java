@@ -363,7 +363,7 @@ public class Server {
             } 
             else {
                 System.out.println("Failed to delete the file.");
-                content = "4e4:Error deleting file. Please try again.";
+                content = "4e2:Error deleting file. Please try again.";
             }
         }
         else {
@@ -379,12 +379,13 @@ public class Server {
         long offset = Long.parseLong(requestContentsParts[1]);
         int bytesToRead = Integer.parseInt(requestContentsParts[2].trim());
         String targetPath = requestContentsParts[3];
+        Boolean readFlag = false;
 
         File file = new File(srcPath);
         String content = "";
 
         if (file.exists()) {
-            System.out.println("Server: File found!");
+            System.out.println("Server: Source file found!");
             try (RandomAccessFile randomAccessFile = new RandomAccessFile(file, "r")) {
                 boolean error = false;
                 // Check if offset is valid
@@ -411,70 +412,73 @@ public class Server {
                     // Convert the bytes to a String
                     content = new String(buffer, 0, bytesRead);
                     System.out.println("Server: Source file content: " + content);
+                    readFlag = true;
                 }
             }
             catch (IOException e) {
-                System.out.println("Server: Error: Error reading file!");
-                content = "5e4:Error reading file. Please try again.";
+                System.out.println("Server: Error: Error reading source file!");
+                content = "5e4:Error reading source file. Please try again.";
             }
         }
         else {
-            System.out.println("Server: File not found!");
-            content = "5e1:File not found. Please try again.";
+            System.out.println("Server: Source file not found!");
+            content = "5e1:Source file not found. Please try again.";
         }
 
         file = new File(targetPath);
 
-        if (file.exists()) {
-            System.out.println("Server: Target File found!");
-            try {
-                // Read file content
-                RandomAccessFile randomAccessFile = new RandomAccessFile(file, "rw");
-                // Create a temporary file to store the data after the insertion point
-                File tempFile = File.createTempFile("temp", null);
-                RandomAccessFile tempRandomAccessFile = new RandomAccessFile(tempFile, "rw");
+        if(readFlag) {
+            if (file.exists()) {
+                System.out.println("Server: Target file found!");
+                try {
+                    // Read file content
+                    RandomAccessFile randomAccessFile = new RandomAccessFile(file, "rw");
+                    // Create a temporary file to store the data after the insertion point
+                    File tempFile = File.createTempFile("temp", null);
+                    RandomAccessFile tempRandomAccessFile = new RandomAccessFile(tempFile, "rw");
 
-                // Set the file pointers
-                randomAccessFile.seek(file.length());
-                tempRandomAccessFile.seek(0);
+                    // Set the file pointers
+                    randomAccessFile.seek(file.length());
+                    tempRandomAccessFile.seek(0);
 
-                // Transfer data after insertion point to temporary file
-                byte[] buffer = new byte[BUFFER_SIZE];
-                int bytesRead;
-                while ((bytesRead = randomAccessFile.read(buffer)) != -1) {
-                    tempRandomAccessFile.write(buffer, 0, bytesRead);
+                    // Transfer data after insertion point to temporary file
+                    byte[] buffer = new byte[BUFFER_SIZE];
+                    int bytesRead;
+                    while ((bytesRead = randomAccessFile.read(buffer)) != -1) {
+                        tempRandomAccessFile.write(buffer, 0, bytesRead);
+                    }
+
+                    // Insert string
+                    randomAccessFile.seek(file.length());
+                    randomAccessFile.writeBytes(content);
+
+                    // Append the data from the temporary file back to the original file
+                    tempRandomAccessFile.seek(0);
+                    while ((bytesRead = tempRandomAccessFile.read(buffer)) != -1) {
+                        randomAccessFile.write(buffer, 0, bytesRead);
+                    }
+
+                    System.out.println("Server: File content appended successfully.");
+                    content = "5:File content has been appended successfully.";
+
+                    // New changes to the file, update subscribers
+                    informSubscribers(targetPath);
+
+                    // Close files
+                    randomAccessFile.close();
+                    tempRandomAccessFile.close();
+                    tempFile.delete(); // Delete temporary file
                 }
-
-                // Insert string
-                randomAccessFile.seek(file.length());
-                randomAccessFile.writeBytes(content);
-
-                // Append the data from the temporary file back to the original file
-                tempRandomAccessFile.seek(0);
-                while ((bytesRead = tempRandomAccessFile.read(buffer)) != -1) {
-                    randomAccessFile.write(buffer, 0, bytesRead);
+                catch (IOException e) {
+                    System.out.println("Server: Error: Error appending into target file!");
+                    content = "5e6:Error appendeding into target file. Please try again.";
+                    e.printStackTrace();
                 }
-
-                System.out.println("Server: Files content concatenated successfully.");
-                content = ":Files content has been concatenated successfully.";
-
-                // New changes to the file, update subscribers
-                informSubscribers(targetPath);
-
-                // Close files
-                randomAccessFile.close();
-                tempRandomAccessFile.close();
-                tempFile.delete(); // Delete temporary file
             }
-            catch (IOException e) {
-                System.out.println("Server: Error: Error concatenating into file!");
-                content = "5e6:Error concatenating into file. Please try again.";
-                e.printStackTrace();
+            else {
+                System.out.println("Server: Target file not found!");
+                content = "5e5:Target file not found. Please try again.";
             }
-        }
-        else {
-            System.out.println("Server: File not found!");
-            content = "5e5:File not found. Please try again.";
         }
         // Send the content to client
         handler.sendOverUDP(clientAddress, clientPort, content);
