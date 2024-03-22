@@ -239,14 +239,11 @@ void Client::processReplyFromServer(string message)
         long long millisecondsCountCurrentTime = milliseconds.count();
         string pathName = messageParts[5];
 
-        size_t pos = pathName.find_last_of('-');
-        string tmserver = pathName.substr(pos + 1);
+        string offSet = messageParts[6];
+        string bytesToRead = messageParts[7];
+        string tmserver = messageParts[8];
 
-        pathName.erase(pos);
-
-        replace(pathName.begin(), pathName.end(), '-', ':');
-
-        replyContents = concatenateFromIndex(messageParts, 6, ":");
+        replyContents = concatenateFromIndex(messageParts, 9, ":");
 
         CacheEntry entry;
         entry.Tc = millisecondsCountCurrentTime;
@@ -254,7 +251,8 @@ void Client::processReplyFromServer(string message)
         long long Tmserver = std::stoll(tmserver);
         entry.Tmclient = Tmserver;
         entry.content = replyContents;
-        cache[pathName] = entry;
+        string cachePathName = pathName + ":" + offSet + ":" + bytesToRead;
+        cache[cachePathName] = entry;
 
         cout << "\nFile content is cached to client: " << endl;
     }
@@ -288,6 +286,9 @@ void Client::processReplyFromServer(string message)
         {
 
             string pathName = messageParts[5];
+            string offSet = messageParts[6];
+            string bytesToRead = messageParts[7];
+            string tmserver = messageParts[8];
 
             auto currentTime = system_clock::now();
             system_clock::duration epochTime = currentTime.time_since_epoch();
@@ -295,19 +296,14 @@ void Client::processReplyFromServer(string message)
 
             long long millisecondsCountCurrentTime = milliseconds.count();
 
-            size_t pos = pathName.find_last_of('-');
-            string tmserver = pathName.substr(pos + 1);
-
             long long Tmserver = std::stoll(tmserver);
-            pathName.erase(pos);
 
-            replace(pathName.begin(), pathName.end(), '-', ':');
+            replyContents = concatenateFromIndex(messageParts, 9, ":");
+            string cachePathName = pathName + ":" + offSet + ":" + bytesToRead;
 
-            replyContents = concatenateFromIndex(messageParts, 6, ":");
-
-            if (cache.find(pathName) != cache.end())
+            if (cache.find(cachePathName) != cache.end())
             {
-                auto &entry = cache[pathName];
+                auto &entry = cache[cachePathName];
 
                 if (entry.Tmclient == Tmserver)
                 {
@@ -317,7 +313,7 @@ void Client::processReplyFromServer(string message)
                 else if (entry.Tmclient < Tmserver)
                 {
                     cout << "\nEntry is invalidated, A request is sent to server for updated data. " << endl;
-                    string requestContent = "1:" + pathName;
+                    string requestContent = "1:" + pathName + ":" + offSet + ":" + bytesToRead;
                     string replyFromServer = handler->sendOverUDP(requestContent);
 
                     // Process reply from server
@@ -360,8 +356,12 @@ string Client::concatenateFromIndex(vector<string> &elements, int startIndex, st
 void Client::printCacheContent()
 {
     // Iterate through the cache
+
+    std::cout << "\n\nPrinting Cache :" << std::endl;
+    ConsoleUI::displaySeparator('=', 41);
     for (const auto &entry : cache)
     {
+        ConsoleUI::displaySeparator('-', 41);
         std::cout << "Key: " << entry.first << std::endl;
         std::cout << "Content: " << entry.second.content << std::endl;
 
@@ -374,5 +374,7 @@ void Client::printCacheContent()
         std::cout << "Tmclient (Local Time): " << std::put_time(std::localtime(&Tmclient_local), "%F %T") << std::endl;
 
         std::cout << std::endl;
+        ConsoleUI::displaySeparator('-', 41);
     }
+    ConsoleUI::displaySeparator('=', 41);
 }

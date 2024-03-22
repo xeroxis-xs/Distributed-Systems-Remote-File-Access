@@ -172,7 +172,7 @@ public class Server {
                     if (fileTimestamps.containsKey(filePath)) {
                         cachedTimestamp = fileTimestamps.get(filePath);
                     }
-                    content = "1:" + filePath + "-" + offset + "-" + bytesToRead + "-" + cachedTimestamp + ":"
+                    content = "1:" + filePath + ":" + offset + ":" + bytesToRead + ":" + cachedTimestamp + ":"
                             + content;
                 }
             } catch (IOException e) {
@@ -530,11 +530,11 @@ public class Server {
             if (fileTimestamps.containsKey(filePath)) {
                 long cachedTimestamp = fileTimestamps.get(filePath);
 
-                content = "6:" + filePath + "-" + offset + "-" + bytesToRead + "-" + Long.toString(cachedTimestamp)
+                content = "6:" + filePath + ":" + offset + ":" + bytesToRead + ":" + Long.toString(cachedTimestamp)
                         + ":File to get timestamp found. Found existing timestamp";
 
             } else {
-                content = "6:" + filePath + "-" + offset + "-" + bytesToRead + "-" + Long.toString(0)
+                content = "6:" + filePath + ":" + offset + ":" + bytesToRead + ":" + Long.toString(0)
                         + ":File to get timestamp found. No modified action ";
             }
         } else {
