@@ -308,6 +308,9 @@ void Client::processReplyFromServer(string message)
                 if (entry.Tmclient == Tmserver)
                 {
                     cout << "\nEntry is valid. Updating Tc to current time. " << endl;
+                    // Entry is valid, retrieving from cache
+                    std::cout << "Reading from client cache..." << std::endl;
+                    std::cout << "Content : " << entry.content << std::endl;
                     entry.Tc = millisecondsCountCurrentTime;
                 }
                 else if (entry.Tmclient < Tmserver)
