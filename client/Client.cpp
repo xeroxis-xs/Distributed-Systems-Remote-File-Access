@@ -308,11 +308,18 @@ void Client::processReplyFromServer(string message)
                 if (entry.Tmclient == Tmserver)
                 {
                     cout << "\nEntry is valid. Updating Tc to current time. " << endl;
+                    // Entry is valid, retrieving from cache
+                    std::cout << "Reading from client cache..." << std::endl;
+                    std::cout << "Content : " << entry.content << std::endl;
                     entry.Tc = millisecondsCountCurrentTime;
                 }
                 else if (entry.Tmclient < Tmserver)
                 {
                     cout << "\nEntry is invalidated, A request is sent to server for updated data. " << endl;
+
+                    //Delete entry from cache as invalid.
+                    cache.erase(cachePathName);
+
                     string requestContent = "1:" + pathName + ":" + offSet + ":" + bytesToRead;
                     string replyFromServer = handler->sendOverUDP(requestContent);
 

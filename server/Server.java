@@ -11,7 +11,7 @@ public class Server {
     private int BUFFER_SIZE;
     private int HISTORY_SIZE;
     private int MONITOR_SIZE;
-    private Map<String, Long> fileTimestamps = new HashMap<>();
+    private Map<String, Long> fileTmservers = new HashMap<>();
     private boolean AT_MOST_ONCE;
     private Handler handler = new Handler();
     private History history;
@@ -117,7 +117,7 @@ public class Server {
                         break;
                     case "6":
                         System.out.println("Server: Client request Tmserver(timestamp) of the file");
-                        getFileTimeStamp(clientAddress, clientPort, requestContents);
+                        getFileTmserver(clientAddress, clientPort, requestContents);
                         break;
                     default:
                         System.out.println("Server: Invalid request type.");
@@ -169,8 +169,8 @@ public class Server {
                     content = new String(buffer, 0, bytesRead);
                     System.out.println("Server: File content: " + content);
                     long cachedTimestamp = 0;
-                    if (fileTimestamps.containsKey(filePath)) {
-                        cachedTimestamp = fileTimestamps.get(filePath);
+                    if (fileTmservers.containsKey(filePath)) {
+                        cachedTimestamp = fileTmservers.get(filePath);
                     }
                     content = "1:" + filePath + ":" + offset + ":" + bytesToRead + ":" + cachedTimestamp + ":"
                             + content;
@@ -258,7 +258,7 @@ public class Server {
                     tempFile.delete(); // Delete temporary file
 
                     // Add file and current timestamp to fileTimeStamps
-                    fileTimestamps.put(filePath, System.currentTimeMillis());
+                    fileTmservers.put(filePath, System.currentTimeMillis());
                 }
             } catch (IOException e) {
                 System.out.println("Server: Error: Error inserting into file!");
@@ -511,7 +511,7 @@ public class Server {
         return stringBuilder.toString();
     }
 
-    private void getFileTimeStamp(InetAddress clientAddress, int clientPort, String requestContents) {
+    private void getFileTmserver(InetAddress clientAddress, int clientPort, String requestContents) {
 
         String[] requestContentsParts = requestContents.split(":");
         String filePath = requestContentsParts[0];
@@ -525,24 +525,23 @@ public class Server {
         String content = "";
 
         if (file.exists()) {
-            System.out.println("Server: File to get timestamp found!");
+            System.out.println("Server: File to get Tmserver found!");
 
-            if (fileTimestamps.containsKey(filePath)) {
-                long cachedTimestamp = fileTimestamps.get(filePath);
+            if (fileTmservers.containsKey(filePath)) {
+                long cachedTimestamp = fileTmservers.get(filePath);
 
                 content = "6:" + filePath + ":" + offset + ":" + bytesToRead + ":" + Long.toString(cachedTimestamp)
-                        + ":File to get timestamp found. Found existing timestamp";
+                        + ":File to get Tmserver found. Found existing Tmserver";
 
             } else {
                 content = "6:" + filePath + ":" + offset + ":" + bytesToRead + ":" + Long.toString(0)
-                        + ":File to get timestamp found. No modified action ";
+                        + ":File to get Tmserver found. No modified action ";
             }
         } else {
-            System.out.println("Server: File to get timestamp not found!");
-            content = "6e1:File to get timestamp not found. Failed to get Tmserver for file.";
+            System.out.println("Server: File to get Tmserver not found!");
+            content = "6e1:File to get Tmserver not found. Failed to get Tmserver for file.";
         }
 
-        System.out.println("Server: getFileTimeStamp content: " + content);
         handler.sendOverUDP(clientAddress, clientPort, content);
     }
 
