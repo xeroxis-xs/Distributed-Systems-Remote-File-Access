@@ -9,9 +9,12 @@ java server.Server
 
 ### Client
 
-From project directory run:
+#### Set up C++ in Visual Code
+
+- Video Tutorial : [Link](https://www.youtube.com/watch?v=DMWD7wfhgNY)
+
+In command prompt (without <>):
 
 ```shell
-javac client/Client.java
-java client.Client
+build_client.bat <serverAddress> <serverPort> <clientPort>
 ```

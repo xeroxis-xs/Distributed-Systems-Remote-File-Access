@@ -7,7 +7,6 @@ import java.net.InetAddress;
 import java.net.SocketTimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 
-
 import utils.ConsoleUI;
 
 public class Handler {
@@ -28,8 +27,7 @@ public class Handler {
             System.out.println("Server: Server started at " + (localhost.getHostAddress()).trim());
             System.out.println("Server: Port listening at " + serverPort);
 
-        }
-        catch (IOException e) {
+        } catch (IOException e) {
             e.printStackTrace();
         }
     }
@@ -51,18 +49,16 @@ public class Handler {
             byte[] marshalledData = utils.Marshaller.marshal(message);
 
             // Create a DatagramPacket for sending data
-            DatagramPacket sendPacket = new DatagramPacket(marshalledData, marshalledData.length, clientAddress, clientPort);
+            DatagramPacket sendPacket = new DatagramPacket(marshalledData, marshalledData.length, clientAddress,
+                    clientPort);
 
             // Send over UDP
             this.socket.send(sendPacket);
-        }
-        catch (IOException e) {
+        } catch (IOException e) {
             System.out.println("\nAn IO error occurred: " + e.getMessage());
         }
         return unmarshalledData;
     }
-
-
 
     public Object[] receiveOverUDP(DatagramPacket receivePacket) {
         Object[] result = new Object[3];
@@ -71,7 +67,8 @@ public class Handler {
         String unmarshalledData = null;
 
         try {
-            // Set a timeout for the socket (in milliseconds) so it does not block the execution
+            // Set a timeout for the socket (in milliseconds) so it does not block the
+            // execution
             this.socket.setSoTimeout(1000); // Timeout set to 1 seconds
             // Receive data from server over UDP
             this.socket.receive(receivePacket);
@@ -87,11 +84,9 @@ public class Handler {
             ConsoleUI.displaySeparator('=', 41);
             System.out.println("Raw Message from Client: " + unmarshalledData);
             ConsoleUI.displaySeparator('=', 41);
-        }
-        catch (SocketTimeoutException ste) {
+        } catch (SocketTimeoutException ste) {
 
-        }
-        catch (IOException e) {
+        } catch (IOException e) {
             System.out.println("\nAn IO error occurred: " + e.getMessage());
         }
         result[0] = clientAddress;

@@ -11,6 +11,7 @@ public class Server {
     private int BUFFER_SIZE;
     private int HISTORY_SIZE;
     private int MONITOR_SIZE;
+    private Map<String, Long> fileTimestamps = new HashMap<>();
     private boolean AT_MOST_ONCE;
     private Handler handler = new Handler();
     private History history;
@@ -25,13 +26,12 @@ public class Server {
             this.AT_MOST_ONCE = AT_MOST_ONCE;
             this.history = new History(this.HISTORY_SIZE);
             this.monitor = new Monitor(this.MONITOR_SIZE);
-        }
-        else {
+        } else {
             // At least once, no history
             this.BUFFER_SIZE = BUFFER_SIZE;
             this.MONITOR_SIZE = MONITOR_SIZE;
         }
-        
+
     }
 
     public void listen(int serverPort) {
@@ -70,23 +70,23 @@ public class Server {
             String clientPortInt = messageParts[3];
             String requestType = messageParts[4];
             String requestContents = concatenateFromIndex(messageParts, 5, ":");
-    
+
             // System.out.println("\nmessageType: " + messageType);
             // System.out.println("requestCounter: " + requestCounter);
             // System.out.println("clientAddress: " + clientAddress);
             // System.out.println("clientPort: " + clientPort);
             // System.out.println("requestType: " + requestType);
             // System.out.println("requestContents: " + requestContents);
-    
+
             // If server is at most once, request is non-idempotent and performed before
             // Check duplicate in history
-            if (AT_MOST_ONCE && isNonIdempotent(requestType) && history.isDuplicate(requestCounter, clientAddressString, clientPortInt)) {
-                
+            if (AT_MOST_ONCE && isNonIdempotent(requestType)
+                    && history.isDuplicate(requestCounter, clientAddressString, clientPortInt)) {
+
                 String content = history.getReplyContent(requestCounter, clientAddressString, clientPortInt);
                 System.out.println("Server: Replying the stored reply content found in history");
                 handler.sendOverUDP(clientAddress, clientPort, content);
-            }
-            else {
+            } else {
                 String replyContent = "";
                 // Proceed as per normal
                 switch (requestType) {
@@ -115,12 +115,16 @@ public class Server {
                         System.out.println("Server: Client request for non-idempotent service");
                         startNonIdempotent(clientAddress, clientPort, requestContents);
                         break;
+                    case "6":
+                        System.out.println("Server: Client request Tmserver(timestamp) of the file");
+                        getFileTimeStamp(clientAddress, clientPort, requestContents);
+                        break;
                     default:
                         System.out.println("Server: Invalid request type.");
                 }
             }
         }
-        
+
     }
 
     private void startRead(InetAddress clientAddress, int clientPort, String requestContents) {
@@ -128,7 +132,6 @@ public class Server {
         String filePath = requestContentsParts[0];
         long offset = Long.parseLong(requestContentsParts[1]);
         int bytesToRead = Integer.parseInt(requestContentsParts[2].trim());
-        
 
         System.out.println("Server: Filepath: " + filePath);
         System.out.println("Server: Offset: " + offset);
@@ -165,15 +168,18 @@ public class Server {
                     // Convert the bytes to a String
                     content = new String(buffer, 0, bytesRead);
                     System.out.println("Server: File content: " + content);
-                    content = "1:" + content;
+                    long cachedTimestamp = 0;
+                    if (fileTimestamps.containsKey(filePath)) {
+                        cachedTimestamp = fileTimestamps.get(filePath);
+                    }
+                    content = "1:" + filePath + ":" + offset + ":" + bytesToRead + ":" + cachedTimestamp + ":"
+                            + content;
                 }
-            }
-            catch (IOException e) {
+            } catch (IOException e) {
                 System.out.println("Server: Error: Error reading file!");
                 content = "1e4:Error reading file. Please try again.";
             }
-        }
-        else {
+        } else {
             System.out.println("Server: File not found!");
             content = "1e1:File not found. Please try again.";
         }
@@ -250,15 +256,16 @@ public class Server {
                     randomAccessFile.close();
                     tempRandomAccessFile.close();
                     tempFile.delete(); // Delete temporary file
+
+                    // Add file and current timestamp to fileTimeStamps
+                    fileTimestamps.put(filePath, System.currentTimeMillis());
                 }
-            }
-            catch (IOException e) {
+            } catch (IOException e) {
                 System.out.println("Server: Error: Error inserting into file!");
                 content = "2e4:Error inserting into file. Please try again.";
                 e.printStackTrace();
             }
-        }
-        else {
+        } else {
             System.out.println("Server: File not found!");
             content = "2e1:File not found. Please try again.";
         }
@@ -283,8 +290,7 @@ public class Server {
             monitor.addSubscriber(clientAddress, clientPort, filePath, monitorMinutes);
             // monitor.printAllSubscribers();
             content = "3:File for monitoring found. Successfully registered for monitoring callbacks.";
-        }
-        else {
+        } else {
             System.out.println("Server: File for monitoring not found!");
             content = "3e3:File for monitoring not found. Failed to register for monitoring callbacks.";
         }
@@ -323,11 +329,11 @@ public class Server {
 
             // Close the file
             randomAccessFile.close();
-        }
-        catch (IOException e) {
+        } catch (IOException e) {
             System.out.println("Server: Error reading updated file");
             e.printStackTrace();
         }
+
     }
 
     private void informExpiredSubscribers() {
@@ -348,7 +354,7 @@ public class Server {
     private void startIdempotent(InetAddress clientAddress, int clientPort, String requestContents) {
         String[] requestContentsParts = requestContents.split(":");
         String filePath = requestContentsParts[0];
-        
+
         System.out.println("Server: Filepath: " + filePath);
 
         File file = new File(filePath);
@@ -356,17 +362,15 @@ public class Server {
 
         if (file.exists()) {
             System.out.println("Server: File found!");
-            File myObj = new File(filePath); 
-            if (myObj.delete()) { 
+            File myObj = new File(filePath);
+            if (myObj.delete()) {
                 System.out.println("Deleted the file: " + myObj.getName());
                 content = "4:File content has been deleted successfully.";
-            } 
-            else {
+            } else {
                 System.out.println("Failed to delete the file.");
                 content = "4e2:Error deleting file. Please try again.";
             }
-        }
-        else {
+        } else {
             System.out.println("Server: File not found!");
             content = "4e1:File not found. Please try again.";
         }
@@ -414,20 +418,18 @@ public class Server {
                     System.out.println("Server: Source file content: " + content);
                     readFlag = true;
                 }
-            }
-            catch (IOException e) {
+            } catch (IOException e) {
                 System.out.println("Server: Error: Error reading source file!");
                 content = "5e4:Error reading source file. Please try again.";
             }
-        }
-        else {
+        } else {
             System.out.println("Server: Source file not found!");
             content = "5e1:Source file not found. Please try again.";
         }
 
         file = new File(targetPath);
 
-        if(readFlag) {
+        if (readFlag) {
             if (file.exists()) {
                 System.out.println("Server: Target file found!");
                 try {
@@ -468,14 +470,12 @@ public class Server {
                     randomAccessFile.close();
                     tempRandomAccessFile.close();
                     tempFile.delete(); // Delete temporary file
-                }
-                catch (IOException e) {
+                } catch (IOException e) {
                     System.out.println("Server: Error: Error appending into target file!");
                     content = "5e6:Error appendeding into target file. Please try again.";
                     e.printStackTrace();
                 }
-            }
-            else {
+            } else {
                 System.out.println("Server: Target file not found!");
                 content = "5e5:Target file not found. Please try again.";
             }
@@ -511,5 +511,39 @@ public class Server {
         return stringBuilder.toString();
     }
 
+    private void getFileTimeStamp(InetAddress clientAddress, int clientPort, String requestContents) {
+
+        String[] requestContentsParts = requestContents.split(":");
+        String filePath = requestContentsParts[0];
+        long offset = Long.parseLong(requestContentsParts[1]);
+        int bytesToRead = Integer.parseInt(requestContentsParts[2].trim());
+
+        System.out.println("Server: Filepath: " + filePath);
+        System.out.println("Server: Offset: " + offset);
+        System.out.println("Server: Bytes: " + bytesToRead);
+        File file = new File(filePath);
+        String content = "";
+
+        if (file.exists()) {
+            System.out.println("Server: File to get timestamp found!");
+
+            if (fileTimestamps.containsKey(filePath)) {
+                long cachedTimestamp = fileTimestamps.get(filePath);
+
+                content = "6:" + filePath + ":" + offset + ":" + bytesToRead + ":" + Long.toString(cachedTimestamp)
+                        + ":File to get timestamp found. Found existing timestamp";
+
+            } else {
+                content = "6:" + filePath + ":" + offset + ":" + bytesToRead + ":" + Long.toString(0)
+                        + ":File to get timestamp found. No modified action ";
+            }
+        } else {
+            System.out.println("Server: File to get timestamp not found!");
+            content = "6e1:File to get timestamp not found. Failed to get Tmserver for file.";
+        }
+
+        System.out.println("Server: getFileTimeStamp content: " + content);
+        handler.sendOverUDP(clientAddress, clientPort, content);
+    }
 
 }
