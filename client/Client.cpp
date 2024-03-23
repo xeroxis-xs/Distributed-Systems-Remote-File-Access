@@ -316,6 +316,10 @@ void Client::processReplyFromServer(string message)
                 else if (entry.Tmclient < Tmserver)
                 {
                     cout << "\nEntry is invalidated, A request is sent to server for updated data. " << endl;
+
+                    //Delete entry from cache as invalid.
+                    cache.erase(cachePathName);
+
                     string requestContent = "1:" + pathName + ":" + offSet + ":" + bytesToRead;
                     string replyFromServer = handler->sendOverUDP(requestContent);
 
