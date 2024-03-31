@@ -207,15 +207,9 @@ public class Server {
                 RandomAccessFile randomAccessFile = new RandomAccessFile(file, "rw");
                 boolean error = false;
                 // Check if offset is valid
-                if (offset < 0 || offset >= randomAccessFile.length()) {
+                if (offset < 0 || offset > randomAccessFile.length()) {
                     System.out.println("Server: Error: Invalid offset");
                     content = "2e2:Invalid byte offset. Please try again.";
-                    error = true;
-                }
-                // Check if number of bytes is valid
-                if (offset < 0 || offset > file.length()) {
-                    System.out.println("Server: Error: Invalid number of bytes");
-                    content = "2e3:Invalid number of bytes. Please try again.";
                     error = true;
                 }
                 // No issue
