@@ -172,11 +172,11 @@ public class Server {
                     // Convert the bytes to a String
                     content = new String(buffer, 0, bytesRead);
                     System.out.println("Server: File content: " + content);
-                    long cachedTimestamp = 0;
+                    long Tmserver = 0;
                     if (fileTmservers.containsKey(filePath)) {
-                        cachedTimestamp = fileTmservers.get(filePath);
+                        Tmserver = fileTmservers.get(filePath);
                     }
-                    content = "1:" + filePath + ":" + offset + ":" + bytesToRead + ":" + cachedTimestamp + ":"
+                    content = "1:" + filePath + ":" + offset + ":" + bytesToRead + ":" + Tmserver + ":"
                             + content;
                 }
             } catch (IOException e) {
@@ -512,9 +512,9 @@ public class Server {
             System.out.println("Server: File to get Tmserver found!");
 
             if (fileTmservers.containsKey(filePath)) {
-                long cachedTimestamp = fileTmservers.get(filePath);
+                long Tmserver = fileTmservers.get(filePath);
 
-                content = "6:" + filePath + ":" + offset + ":" + bytesToRead + ":" + Long.toString(cachedTimestamp)
+                content = "6:" + filePath + ":" + offset + ":" + bytesToRead + ":" + Long.toString(Tmserver)
                         + ":File to get Tmserver found. Found existing Tmserver";
 
             } else {
