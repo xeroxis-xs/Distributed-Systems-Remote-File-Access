@@ -35,8 +35,8 @@ private:
     void startRead(string requestType);
     void startInsert(string requestType);
     void startMonitor(string requestType);
-    void startIdempotent(string requestType);
-    void startNonIdempotent(string requestType);
+    void startDelete(string requestType);
+    void startAppend(string requestType);
     void processReplyFromServer(string message);
     string concatenateFromIndex(vector<string> &elements, int startIndex, string delimiter);
     std::unordered_map<std::string, CacheEntry> cache;

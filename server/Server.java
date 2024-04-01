@@ -109,11 +109,11 @@ public class Server {
                         break;
                     case "4":
                         System.out.println("Server: Client request for idempotent service");
-                        startIdempotent(clientAddress, clientPort, requestContents);
+                        startDelete(clientAddress, clientPort, requestContents);
                         break;
                     case "5":
                         System.out.println("Server: Client request for non-idempotent service");
-                        replyContent = startNonIdempotent(clientAddress, clientPort, requestContents);
+                        replyContent = startAppend(clientAddress, clientPort, requestContents);
                         if (AT_MOST_ONCE) {
                             // Add record
                             history.addRecord(requestCounter, clientAddressString, clientPortInt, replyContent);
@@ -349,7 +349,7 @@ public class Server {
         }
     }
 
-    private void startIdempotent(InetAddress clientAddress, int clientPort, String requestContents) {
+    private void startDelete(InetAddress clientAddress, int clientPort, String requestContents) {
         String[] requestContentsParts = requestContents.split(":");
         String filePath = requestContentsParts[0];
 
@@ -375,7 +375,7 @@ public class Server {
         handler.sendOverUDP(clientAddress, clientPort, content);
     }
 
-    private String startNonIdempotent(InetAddress clientAddress, int clientPort, String requestContents) {
+    private String startAppend(InetAddress clientAddress, int clientPort, String requestContents) {
         String[] requestContentsParts = requestContents.split(":");
         String srcPath = requestContentsParts[0];
         String targetPath = requestContentsParts[1];
@@ -387,7 +387,7 @@ public class Server {
         if (file.exists()) {
             System.out.println("Server: Source file found!");
             try (RandomAccessFile randomAccessFile = new RandomAccessFile(file, "r")) {
-              
+
                 // Set the file pointer to the specified offset
                 randomAccessFile.seek(0);
 
