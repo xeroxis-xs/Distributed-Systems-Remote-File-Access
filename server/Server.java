@@ -452,6 +452,10 @@ public class Server {
                     randomAccessFile.close();
                     tempRandomAccessFile.close();
                     tempFile.delete(); // Delete temporary file
+
+                    // Add file and current timestamp to fileTimeStamps since target file is modified
+                    fileTmservers.put(targetPath, System.currentTimeMillis());
+
                 } catch (IOException e) {
                     System.out.println("Server: Error: Error appending into destination file!");
                     content = "5e4:Error appendeding into destination file. Please try again.";
