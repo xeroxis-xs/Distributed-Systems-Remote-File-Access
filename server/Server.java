@@ -113,7 +113,11 @@ public class Server {
                         break;
                     case "5":
                         System.out.println("Server: Client request for non-idempotent service");
-                        startNonIdempotent(clientAddress, clientPort, requestContents);
+                        replyContent = startNonIdempotent(clientAddress, clientPort, requestContents);
+                        if (AT_MOST_ONCE) {
+                            // Add record
+                            history.addRecord(requestCounter, clientAddressString, clientPortInt, replyContent);
+                        }
                         break;
                     case "6":
                         System.out.println("Server: Client request Tmserver(timestamp) of the file");
@@ -371,12 +375,10 @@ public class Server {
         handler.sendOverUDP(clientAddress, clientPort, content);
     }
 
-    private void startNonIdempotent(InetAddress clientAddress, int clientPort, String requestContents) {
+    private String startNonIdempotent(InetAddress clientAddress, int clientPort, String requestContents) {
         String[] requestContentsParts = requestContents.split(":");
         String srcPath = requestContentsParts[0];
-        long offset = Long.parseLong(requestContentsParts[1]);
-        int bytesToRead = Integer.parseInt(requestContentsParts[2].trim());
-        String targetPath = requestContentsParts[3];
+        String targetPath = requestContentsParts[1];
         Boolean readFlag = false;
 
         File file = new File(srcPath);
@@ -385,45 +387,31 @@ public class Server {
         if (file.exists()) {
             System.out.println("Server: Source file found!");
             try (RandomAccessFile randomAccessFile = new RandomAccessFile(file, "r")) {
-                boolean error = false;
-                // Check if offset is valid
-                if (offset < 0 || offset >= randomAccessFile.length()) {
-                    System.out.println("Server: Error: Invalid offset");
-                    content = "5e2:Invalid byte offset. Please try again.";
-                    error = true;
-                }
-                // Check if number of bytes is valid
-                if (bytesToRead <= 0 || offset + bytesToRead > randomAccessFile.length()) {
-                    System.out.println("Server: Error: Invalid number of bytes");
-                    content = "5e3:Invalid number of bytes. Please try again.";
-                    error = true;
-                }
-                // No error
-                if (!error) {
-                    // Set the file pointer to the specified offset
-                    randomAccessFile.seek(offset);
+              
+                // Set the file pointer to the specified offset
+                randomAccessFile.seek(0);
 
-                    // Read the specified number of bytes
-                    byte[] buffer = new byte[bytesToRead];
-                    int bytesRead = randomAccessFile.read(buffer);
+                // Read the specified number of bytes
+                byte[] buffer = new byte[(int) file.length()];
+                int bytesRead = randomAccessFile.read(buffer);
 
-                    // Convert the bytes to a String
-                    content = new String(buffer, 0, bytesRead);
-                    System.out.println("Server: Source file content: " + content);
-                    readFlag = true;
-                }
+                // Convert the bytes to a String
+                content = new String(buffer, 0, bytesRead);
+                System.out.println("Server: Source file content: " + content);
+                readFlag = true;
             } catch (IOException e) {
                 System.out.println("Server: Error: Error reading source file!");
-                content = "5e4:Error reading source file. Please try again.";
+                content = "5e2:Error reading source file. Please try again.";
             }
-        } else {
+        }
+        else {
             System.out.println("Server: Source file not found!");
             content = "5e1:Source file not found. Please try again.";
         }
 
         file = new File(targetPath);
 
-        if (readFlag) {
+        if(readFlag) {
             if (file.exists()) {
                 System.out.println("Server: Target file found!");
                 try {
@@ -465,18 +453,20 @@ public class Server {
                     tempRandomAccessFile.close();
                     tempFile.delete(); // Delete temporary file
                 } catch (IOException e) {
-                    System.out.println("Server: Error: Error appending into target file!");
-                    content = "5e6:Error appendeding into target file. Please try again.";
+                    System.out.println("Server: Error: Error appending into destination file!");
+                    content = "5e4:Error appendeding into destination file. Please try again.";
                     e.printStackTrace();
                 }
             } else {
-                System.out.println("Server: Target file not found!");
-                content = "5e5:Target file not found. Please try again.";
+                System.out.println("Server: Destination file not found!");
+                content = "5e3:Destination file not found. Please try again.";
             }
         }
         // Send the content to client
         handler.sendOverUDP(clientAddress, clientPort, content);
+        return content;
     }
+
 
     private boolean isNonIdempotent(String requestType) {
         if (requestType.equals("2") || requestType.equals("5")) {
@@ -538,5 +528,4 @@ public class Server {
 
         handler.sendOverUDP(clientAddress, clientPort, content);
     }
-
 }

@@ -1,28 +1,48 @@
-# Compiled class files
-*.class
+# Compiled Object files
+*.slo
+*.lo
+*.o
+*.obj
 
-# Log files
-*.log
+# Precompiled Headers
+*.gch
+*.pch
 
-# IntelliJ IDEA files
-.idea/
+# Compiled Dynamic libraries
+*.so
+*.dylib
+*.dll
 
-# Eclipse files
-.classpath
-.project
-.settings/
+# Fortran module files
+*.mod
+*.smod
 
-# Maven build directory
-target/
+# Compiled Static libraries
+*.lai
+*.la
+*.a
+*.lib
 
-# Gradle build directory
+# Executables
+*.exe
+*.out
+*.app
+*.i*
+
+# C++ specific
+*.h.gch
+*.hpp.gch
+*.hh.gch
+*.cpp.gch
+
+# Other generated files
+*.swp
+*.swo
+*.swn
+*.swo
+
+# Dependency directories
+.depend
+.libs
 build/
-
-# NetBeans project directory
-nbproject/
-
-# macOS metadata files
-.DS_Store
-
-# Windows metadata files
-Thumbs.db
+dist/

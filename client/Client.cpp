@@ -192,11 +192,38 @@ void Client::startMonitor(string requestType)
 void Client::startIdempotent(string requestType)
 {
     // Implementation for idempotent service
+    cout << "\nEnter the pathname of the target file to be deleted: ";
+    cout << "\nE.g. server/storage/hello.txt" << endl;
+    string pathname = inputReader->getString();
+
+    cout << "You have selected to detele " << pathname << "." << endl;
+    string requestContent = requestType + ":" + pathname;
+
+    // Send request and receive reply from server
+    string replyFromServer = handler->sendOverUDP(requestContent);
+
+    // Process reply from server
+    processReplyFromServer(replyFromServer);
 }
 
 void Client::startNonIdempotent(string requestType)
 {
     // Implementation for non-idempotent service
+    cout << "\nEnter the pathname of the source file to be read: ";
+    cout << "\nE.g. server/storage/hello.txt" << endl;
+    string srcPath = inputReader->getString();
+
+
+    cout << "\nEnter the pathname of the destination file to be appended to: ";
+    cout << "\nE.g. server/storage/hello.txt" << endl;
+    string targetPath = inputReader->getString();
+
+    cout << "You have selected to read from " << srcPath << ", and appending the data to the back of " << targetPath << "." << endl;
+    string pathname = srcPath + ":" + targetPath;
+    string requestContent = requestType + ":" + pathname;
+
+    string replyFromServer = handler->sendOverUDP(requestContent);
+    processReplyFromServer(replyFromServer);
 }
 
 void Client::processReplyFromServer(string message)
