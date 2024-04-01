@@ -46,8 +46,8 @@ void Client::startServices()
         cout << "| [1] Read a content from a file        |" << endl;
         cout << "| [2] Insert a content into a file      |" << endl;
         cout << "| [3] Monitor updates of a file         |" << endl;
-        cout << "| [4] Idempotent service                |" << endl;
-        cout << "| [5] Non-idempotent service            |" << endl;
+        cout << "| [4] Delete a file                     |" << endl;
+        cout << "| [5] Append a file to a file           |" << endl;
         cout << "| [6] Exit                              |" << endl;
         cout << "|                                       |" << endl;
         cout << "+---------------------------------------+" << endl;
@@ -66,10 +66,10 @@ void Client::startServices()
             startMonitor("3");
             break;
         case 4:
-            startIdempotent("4");
+            startDelete("4");
             break;
         case 5:
-            startNonIdempotent("5");
+            startAppend("5");
             break;
         case 6:
             cout << "Exiting..." << endl;
@@ -189,7 +189,7 @@ void Client::startMonitor(string requestType)
     }
 }
 
-void Client::startIdempotent(string requestType)
+void Client::startDelete(string requestType)
 {
     // Implementation for idempotent service
     cout << "\nEnter the pathname of the target file to be deleted: ";
@@ -206,10 +206,10 @@ void Client::startIdempotent(string requestType)
     processReplyFromServer(replyFromServer);
 }
 
-void Client::startNonIdempotent(string requestType)
+void Client::startAppend(string requestType)
 {
     // Implementation for non-idempotent service
-    cout << "\nEnter the pathname of the source file to be read: ";
+    cout << "\nEnter the pathname of the source file to be appended from: ";
     cout << "\nE.g. server/storage/hello.txt" << endl;
     string srcPath = inputReader->getString();
 
@@ -218,7 +218,7 @@ void Client::startNonIdempotent(string requestType)
     cout << "\nE.g. server/storage/hello.txt" << endl;
     string targetPath = inputReader->getString();
 
-    cout << "You have selected to read from " << srcPath << ", and appending the data to the back of " << targetPath << "." << endl;
+    cout << "You have selected to append a file from " << srcPath << " to a file at " << targetPath << "." << endl;
     string pathname = srcPath + ":" + targetPath;
     string requestContent = requestType + ":" + pathname;
 

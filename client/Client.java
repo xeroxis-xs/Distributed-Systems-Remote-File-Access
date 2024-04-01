@@ -48,8 +48,8 @@ public class Client {
             System.out.println("| [1] Read a content from a file        |");
             System.out.println("| [2] Insert a content into a file      |");
             System.out.println("| [3] Monitor updates of a file         |");
-            System.out.println("| [4] Idempotent service                |");
-            System.out.println("| [5] Non-idempotent service            |");
+            System.out.println("| [4] Delete a file                     |");
+            System.out.println("| [5] Append a file into a file         |");
             System.out.println("| [6] Exit                              |");
             System.out.println("|                                       |");
             System.out.println("+---------------------------------------+");
@@ -67,10 +67,10 @@ public class Client {
                     startMonitor("3");
                     break;
                 case 4:
-                    startIdempotent("4");
+                    startDelete("4");
                     break;
                 case 5:
-                    startNonIdempotent("5");
+                    startAppend("5");
                     break;
                 case 6:
                     System.out.println("Exiting...");
@@ -84,7 +84,7 @@ public class Client {
     }
 
 
-    
+
 
     private void startRead(String requestType) {
 
@@ -158,11 +158,11 @@ public class Client {
             // Process monitoring reply from server
             processReplyFromServer(monitorFromServer);
         }
-        
+
     }
 
     //Deleting Files
-    private void startIdempotent(String requestType) {
+    private void startDelete(String requestType) {
         System.out.println("\nEnter the pathname of the target file to delete: ");
         System.out.println("E.g. server/storage/hello.txt");
         String pathname = ig.getString();
@@ -177,26 +177,18 @@ public class Client {
         processReplyFromServer(replyFromServer);
     }
 
-    private void startNonIdempotent(String requestType) {
-        System.out.println("\nEnter the pathname of the target file to be read: ");
+    private void startAppend(String requestType) {
+        System.out.println("\nEnter the pathname of the source file to be appended from: ");
         System.out.println("E.g. server/storage/hello.txt");
         String srcPath = ig.getString();
 
-        System.out.println("\nEnter the offset of the file content (in bytes) to read from: ");
-        System.out.println("E.g. 0");
-        long offset = ig.getLong();
-
-        System.out.println("\nEnter the number of bytes to read: ");
-        System.out.println("E.g. 2");
-        int bytesToRead = ig.getInt();
-
-        System.out.println("\nEnter the pathname of the target file to be appended to: ");
+        System.out.println("\nEnter the pathname of the destination file to be appended to: ");
         System.out.println("E.g. server/storage/hello.txt");
         String targetPath = ig.getString();
 
-        System.out.println("You have selected to read " + bytesToRead + " bytes from " + srcPath + " starting from byte " + offset + ", and appending it to the back of " + targetPath + ".");
-        String requestContent = requestType + ":" + srcPath + ":" + offset + ":" + bytesToRead + ":" + targetPath;
-        
+        System.out.println("You have selected to append a file from " + srcPath + " to a file at " + targetPath + ".");
+        String requestContent = requestType + ":" + srcPath + ":" + targetPath;
+
         // Send request and receive reply from server
         String replyFromServer = handler.sendOverUDP(requestContent);
 
@@ -283,7 +275,7 @@ public class Client {
                 System.out.println("Read source file request failed: " + replyContents);
                 break;
             case "5e2":
-                System.out.println("Read source file request failed: " + replyContents);    
+                System.out.println("Read source file request failed: " + replyContents);
                 break;
             case "5e3":
                 System.out.println("Read source file request failed: " + replyContents);
@@ -303,7 +295,7 @@ public class Client {
         }
         ConsoleUI.displaySeparator('=', 41);
         // }
-        
+
     }
 
     private String concatenateFromIndex(String[] elements, int startIndex, String delimiter) {
