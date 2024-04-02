@@ -349,6 +349,22 @@ public class Server {
         }
     }
 
+    private void informSubscribersAboutDeletion(String filePath){
+        String content = "4e3:The file " + filePath + " has been deleted. Monitoring stopped.";
+
+        List<Subscriber> subscribers = monitor.getAllSubscribersAsList();
+
+        // Inform each subscriber about the deletion
+        for (Subscriber subscriber : subscribers) {
+            if(subscriber.getFilePath().equals(filePath)){
+                handler.sendOverUDP(subscriber.getClientAddress(), subscriber.getClientPort(), content);
+                // Remove subscriber since monitoring is stopped
+                monitor.removeSubscriber(subscriber.getClientAddress(), subscriber.getClientPort(), filePath);
+            }
+            
+        }
+    }
+
     private void startDelete(InetAddress clientAddress, int clientPort, String requestContents) {
         String[] requestContentsParts = requestContents.split(":");
         String filePath = requestContentsParts[0];
@@ -363,7 +379,10 @@ public class Server {
             File myObj = new File(filePath);
             if (myObj.delete()) {
                 System.out.println("Deleted the file: " + myObj.getName());
-                content = "4:File content has been deleted successfully.";
+                content = "4:File has been deleted successfully.";
+
+                // Inform subscribers about file deletion
+                informSubscribersAboutDeletion(filePath);
             } else {
                 System.out.println("Failed to delete the file.");
                 content = "4e2:Error deleting file. Please try again.";
