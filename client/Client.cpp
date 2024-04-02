@@ -306,6 +306,11 @@ void Client::processReplyFromServer(string message)
     {
         cout << "\nMonitor request failed: " << replyContents << endl;
     }
+    else if (replyType == "4e3")
+    {
+        cout << "\nMonitor stopped: " << replyContents << endl;
+        isMonitoring = false;
+    }
     else if (replyType == "6")
     {
         cout << "\nGet Tmserver successful " << endl;
@@ -372,7 +377,7 @@ void Client::processReplyFromServer(string message)
 
     ConsoleUI::displaySeparator('=', 41);
 
-    printCacheContent();
+    // printCacheContent();
 }
 
 string Client::concatenateFromIndex(vector<string> &elements, int startIndex, string delimiter)
