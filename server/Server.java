@@ -365,6 +365,43 @@ public class Server {
         }
     }
 
+    private void informSubscribersAboutAppend(String sourcePath, String destPath){
+        try {
+            // Open the file in read-only mode
+            RandomAccessFile randomAccessFile = new RandomAccessFile(destPath, "r");
+
+            // Get the length of the file
+            long length = randomAccessFile.length();
+
+            // Create a byte array to hold the file content
+            byte[] fileContent = new byte[(int) length];
+
+            // Read the entire file into the byte array
+            randomAccessFile.readFully(fileContent);
+
+            // Convert the byte array to a string (assuming text file)
+            String fileContentString = new String(fileContent);
+
+            System.out.println("Server: File content for subscribers: " + fileContentString);
+            String content = "3e1:The content in file " + sourcePath + " has been appended to " + destPath + ".\n The new content of " + destPath + " has been updated to '" + fileContentString + "''.";
+
+            List<Subscriber> subscriberList = monitor.getAllSubscribersAsList();
+
+            for (Subscriber subscriber : subscriberList) {
+                if (subscriber.getFilePath().equals(destPath)) {
+                    // Send the file updated content to each subscriber subscribed to the file
+                    handler.sendOverUDP(subscriber.getClientAddress(), subscriber.getClientPort(), content);
+                }
+            }
+
+            // Close the file
+            randomAccessFile.close();
+        } catch (IOException e) {
+            System.out.println("Server: Error reading updated file");
+            e.printStackTrace();
+        }
+    }
+
     private void startDelete(InetAddress clientAddress, int clientPort, String requestContents) {
         String[] requestContentsParts = requestContents.split(":");
         String filePath = requestContentsParts[0];
@@ -465,7 +502,7 @@ public class Server {
                     content = "5:File content has been appended successfully.";
 
                     // New changes to the file, update subscribers
-                    informSubscribers(targetPath);
+                    informSubscribersAboutAppend(srcPath, targetPath);
 
                     // Close files
                     randomAccessFile.close();

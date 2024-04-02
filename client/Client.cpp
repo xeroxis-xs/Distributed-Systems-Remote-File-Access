@@ -311,6 +311,14 @@ void Client::processReplyFromServer(string message)
         cout << "\nMonitor stopped: " << replyContents << endl;
         isMonitoring = false;
     }
+    else if (replyType == "5") 
+    {
+        cout << "\nAppend successfull: " << replyContents << endl;
+    }
+    else if (replyType == "5e1" || replyType == "5e2" || replyType == "5e3" || replyType == "5e4") 
+    {
+        cout << "\nAppend failed: " << replyContents << endl;
+    }
     else if (replyType == "6")
     {
         cout << "\nGet Tmserver successful " << endl;
