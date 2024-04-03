@@ -39,7 +39,7 @@ client/Main.exe <serverAddress> <serverPort> <clientPort> <freshnessInterval>
 ```
 E.g.
 ```shell
-client/Main.exe 127.0.0.1 12345 65535 1
+client/Main.exe 127.0.0.1 12345 65535 60
 ```
 #### Run C++ with Visual Studio Code
 Set up C++ in Visual Studio Code
