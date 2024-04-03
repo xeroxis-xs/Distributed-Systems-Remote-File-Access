@@ -1,6 +1,5 @@
-package client;
+package client_java;
 
-import utils.InputGetter;
 import utils.ConsoleUI;
 
 public class Client {
@@ -199,10 +198,10 @@ public class Client {
     private void processReplyFromServer(String message) {
         // if (message != null) {
         String[] messageParts = message.split(":");
-        String messageType = messageParts[0]; // 0 is request; 1 is reply
-        String replyCounter = messageParts[1];
-        String serverAddress = messageParts[2];
-        String serverPort = messageParts[3];
+        // String messageType = messageParts[0]; // 0 is request; 1 is reply
+        // String replyCounter = messageParts[1];
+        // String serverAddress = messageParts[2];
+        // String serverPort = messageParts[3];
         String replyType = messageParts[4];
         String replyContents = concatenateFromIndex(messageParts, 5, ":");
 

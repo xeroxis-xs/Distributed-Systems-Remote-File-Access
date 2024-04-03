@@ -104,6 +104,7 @@ void Client::startRead(string requestType)
 
     if (cache.find(pathnameOffsetBytesToReady) != cache.end())
     {
+        cout << "Found in cache!" << endl;
         auto &entry = cache[pathnameOffsetBytesToReady];
         auto currentTime = system_clock::now();
         system_clock::duration epochTime = currentTime.time_since_epoch();
@@ -116,12 +117,15 @@ void Client::startRead(string requestType)
         if (timeSinceLastValidated < (freshnessInterval * 1000))
         {
             // Content is fresh, retrieve from cache
+            std::cout << "Cache is still fresh" << std::endl;
             std::cout << "Reading from client cache..." << std::endl;
             std::cout << "Content : " << entry.content << std::endl;
         }
         else
         {
             // Issue getattr call to server to obtain Tmserver
+            // Content is not fresh check from server
+            std::cout << "Cache is not fresh, requesting Tmserver from server" << std::endl;
             string requestTmserverContent = "6:" + pathnameOffsetBytesToReady;
             string replyFromServer = handler->sendOverUDP(requestTmserverContent);
             processReplyFromServer(replyFromServer);
@@ -129,7 +133,7 @@ void Client::startRead(string requestType)
     }
     else
     {
-        cout << "requestContent send to Server: " << requestContent << endl;
+        cout << "Not found in cache, sending read request to server: " << requestContent << endl;
 
         // Send request and receive reply from server
         string replyFromServer = handler->sendOverUDP(requestContent);
@@ -158,7 +162,6 @@ void Client::startInsert(string requestType)
 
     // Send request and receive reply from server
     string replyFromServer = handler->sendOverUDP(requestContent);
-    
 
     // Process reply from server
     processReplyFromServer(replyFromServer);
@@ -189,16 +192,13 @@ void Client::startMonitor(string requestType)
 
     while (isMonitoring) {
         // Receives monitoring updates from server
-        
         string monitorFromServer = handler->monitorOverUDP();
-        
         // Process monitoring reply from server
         processReplyFromServer(monitorFromServer);
 
         if(!isMonitoring){
             break;
         }
-        
     }
 }
 
@@ -341,11 +341,11 @@ void Client::processReplyFromServer(string message)
         this->isMonitoring = false;
         this->timerFlag = false;
     }
-    else if (replyType == "5") 
+    else if (replyType == "5")
     {
         cout << "\nAppend successfull: " << replyContents << endl;
     }
-    else if (replyType == "5e1" || replyType == "5e2" || replyType == "5e3" || replyType == "5e4") 
+    else if (replyType == "5e1" || replyType == "5e2" || replyType == "5e3" || replyType == "5e4")
     {
         cout << "\nAppend failed: " << replyContents << endl;
     }
@@ -460,17 +460,17 @@ void Client::monitorTimer(long monitorMinutes) {
     // Convert monitorMinutes to milliseconds
     long extraBufferTime = 0.25 * 60 * 1000;
     long milliseconds = (monitorMinutes * 60 * 1000) + extraBufferTime;
-    
+
     // Sleep for the specified duration
     std::this_thread::sleep_for(std::chrono::milliseconds(milliseconds));
 
     if(!timerFlag) {
-        
+
         return;
     }
     // Update the isMonitoring flag
     this->isMonitoring = false;
     cout << "\nMonitor stopped by Client: Possible reason could be loss of server packet" << endl;
-    
-                    
+
+
 }
