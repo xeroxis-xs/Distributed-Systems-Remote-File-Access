@@ -279,6 +279,8 @@ void Client::processReplyFromServer(string message)
     // Switch case for different reply types
     if (replyType == "1")
     {
+        replyContents = concatenateFromIndex(messageParts, 9, ":");
+
         cout << "\nRead request successful: " << replyContents << endl;
         auto currentTime = system_clock::now();
         system_clock::duration epochTime = currentTime.time_since_epoch();
@@ -290,8 +292,6 @@ void Client::processReplyFromServer(string message)
         string offSet = messageParts[6];
         string bytesToRead = messageParts[7];
         string tmserver = messageParts[8];
-
-        replyContents = concatenateFromIndex(messageParts, 9, ":");
 
         CacheEntry entry;
         entry.Tc = millisecondsCountCurrentTime;
