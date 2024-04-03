@@ -1,4 +1,4 @@
-package utils;
+package client_java;
 
 import java.util.Scanner;
 
