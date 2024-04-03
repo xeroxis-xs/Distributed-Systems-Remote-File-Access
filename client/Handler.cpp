@@ -1,8 +1,8 @@
 #include "Handler.hpp"
 
-Handler::Handler(int BUFFER_SIZE, double PACKET_SEND_LOSS_PROB, double PACKET_RECV_LOSS_PROB, int MAX_RETRIES)
+Handler::Handler(int BUFFER_SIZE, double PACKET_SEND_LOSS_PROB, double PACKET_RECV_LOSS_PROB, double MONITORING_PACKET_RECV_LOSS_PROB, int MAX_RETRIES)
     : BUFFER_SIZE(BUFFER_SIZE), PACKET_SEND_LOSS_PROB(PACKET_SEND_LOSS_PROB),
-      PACKET_RECV_LOSS_PROB(PACKET_RECV_LOSS_PROB), MAX_RETRIES(MAX_RETRIES), requestIdCounter(0)
+      PACKET_RECV_LOSS_PROB(PACKET_RECV_LOSS_PROB), MONITORING_PACKET_RECV_LOSS_PROB(MONITORING_PACKET_RECV_LOSS_PROB) ,MAX_RETRIES(MAX_RETRIES), requestIdCounter(0)
 {
     clientAddress = getClientAddress();
 }
@@ -117,7 +117,7 @@ void Handler::disconnect()
 
 string Handler::sendOverUDP(string requestContent)
 {
-    string unmarshalledData;
+    string unmarshalledData = "";
     try
     {
         // Create the message payload structure
@@ -128,14 +128,23 @@ string Handler::sendOverUDP(string requestContent)
         // Marshal the data into a byte array
         vector<char> marshalledData = Marshaller::marshal(message);
 
-        // Send data over UDP
-        int bytesSent = sendto(this->socketDescriptor, marshalledData.data(), marshalledData.size(), 0,
-                               (SOCKADDR *)&this->serverAddress, sizeof(this->serverAddress));
-        if (bytesSent == SOCKET_ERROR)
+        srand(time(NULL));
+        double randNum = static_cast<double>(rand()) / RAND_MAX;
+        if (randNum < PACKET_SEND_LOSS_PROB)
         {
-            cerr << "Send failed with error: " << WSAGetLastError() << endl;
+            cout << "\n***** Simulating sending message loss from client *****" << endl;
             return "";
         }
+        else {
+            // Send data over UDP
+            int bytesSent = sendto(this->socketDescriptor, marshalledData.data(), marshalledData.size(), 0,
+                                (SOCKADDR *)&this->serverAddress, sizeof(this->serverAddress));
+            if (bytesSent == SOCKET_ERROR)
+            {
+                cerr << "Send failed with error: " << WSAGetLastError() << endl;
+            }
+        }
+        
 
         // Receive over UDP
         unmarshalledData = this->receiveOverUDP(this->socketDescriptor);
@@ -168,17 +177,30 @@ string Handler::receiveOverUDP(SOCKET socket)
             // Set timeout for 5 seconds
             setsockopt(socket, SOL_SOCKET, SO_RCVTIMEO, (char *)&timeout, sizeof(timeout));
 
+            srand(time(NULL));
+            double randNum = static_cast<double>(rand()) / RAND_MAX;
+
+             
+
             // Receive data from server over UDP
             int bytesReceived = recvfrom(socket, buffer.data(), buffer.size(), 0, (SOCKADDR *)&serverAddr, &serverAddrLen);
             if (bytesReceived == SOCKET_ERROR)
             {
                 throw runtime_error("Receive failed with error: " + GetWSAErrorMessage(WSAGetLastError()));
             }
+            else {
+                if (randNum < PACKET_RECV_LOSS_PROB)
+                {
+                    cout << "\n***** Simulating receiving message loss from server *****" << endl;
+                    break; // Simulate message loss by not receiving the packet
+                }
+                // Unmarshal the data into a String
+                unmarshalledData = Marshaller::unmarshal(buffer);
 
-            // Unmarshal the data into a String
-            unmarshalledData = Marshaller::unmarshal(buffer);
+                cout << "\nRaw Message from Server: " << unmarshalledData << endl;
+            }
 
-            cout << "\nRaw Message from Server: " << unmarshalledData << endl;
+           
 
             break;
         }
@@ -195,7 +217,7 @@ string Handler::receiveOverUDP(SOCKET socket)
 string Handler::monitorOverUDP()
 {
     string unmarshalledData;
-    int timeout = 0;
+    int timeout = 5000;
 
     // Prepare a byte buffer to store received data
     vector<char> buffer(BUFFER_SIZE);
@@ -205,22 +227,35 @@ string Handler::monitorOverUDP()
     int serverAddrLen = sizeof(serverAddr);
 
     try
-    {
+    {   
+
         // Remove any timeout since it is a blocking operation
         setsockopt(this->socketDescriptor, SOL_SOCKET, SO_RCVTIMEO, (char *)&timeout, sizeof(timeout));
 
+        srand(time(NULL));
+        double randNum = static_cast<double>(rand()) / RAND_MAX;
+
+          
         // Receive data from server over UDP
         int bytesReceived = recvfrom(this->socketDescriptor, buffer.data(), buffer.size(), 0, (SOCKADDR *)&serverAddr, &serverAddrLen);
         if (bytesReceived == SOCKET_ERROR)
         {
-            cerr << "Receive failed with error: " << WSAGetLastError() << endl;
-            return "";
+            
+            return "Monitoring";
         }
+        else
+        {
+            if (randNum < MONITORING_PACKET_RECV_LOSS_PROB)
+            {
+                cout << "\n***** Simulating receiving message loss from server while monitoring *****" << endl;
+                return ""; // Simulate message loss by not receiving the packet
+            }
+            // Unmarshal the data into a String
+            unmarshalledData = Marshaller::unmarshal(buffer);
 
-        // Unmarshal the data into a String
-        unmarshalledData = Marshaller::unmarshal(buffer);
-
-        cout << "Raw Message from Server: " << unmarshalledData << endl;
+            cout << "Raw Message from Server: " << unmarshalledData << endl;
+        }
+        
     }
     catch (exception &e)
     {

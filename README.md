@@ -16,5 +16,15 @@ java server.Server
 In command prompt (without <>):
 
 ```shell
-build_client.bat <serverAddress> <serverPort> <clientPort>
+build_client.bat <serverAddress> <serverPort> <clientPort> <freshnessInterval>
 ```
+
+#### Possible Issues:
+
+- Segmentation fault when running bat file
+
+Open Terminal in Folder and run `./Main.exe <serverAddress> <serverPort> <clientPort> <freshnessInterval>`
+
+#### Debugging
+
+Press F5 in any .cpp files, debugging is possible by clicking on breakpoint
