@@ -2,6 +2,9 @@ package utils;
 
 import java.util.Scanner;
 
+/**
+ * Input class to get user input
+ */
 public class InputGetter {
 
     private Scanner sc;
@@ -10,6 +13,10 @@ public class InputGetter {
         sc = new Scanner(System.in);
     }
 
+	/**
+	 * Get an integer from the user input
+	 * @return integer value
+	 */
     public int getInt() {
 		try {
 			//DO NOT use nextint because it does not read \n
@@ -20,6 +27,10 @@ public class InputGetter {
 		}
     }
 
+	/**
+	 * Get a long from the user input
+	 * @return long value
+	 */
     public long getLong() {
 		try {
 			return Long.parseLong(sc.nextLine());
@@ -29,6 +40,10 @@ public class InputGetter {
 		}
     }
 
+	/**
+	 * Get a String from the user input
+	 * @return string value
+	 */
     public String getString() {
 		try {
 			String userInput = sc.nextLine();
