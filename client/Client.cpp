@@ -6,15 +6,16 @@
 #include <sstream>
 using std::replace;
 
-Client::Client(int clientPort, string serverAddress, int serverPort, int BUFFER_SIZE, double PACKET_SEND_LOSS_PROB, double PACKET_RECV_LOSS_PROB, int MAX_RETRIES, long freshnessInterval)
+Client::Client(int clientPort, string serverAddress, int serverPort, int BUFFER_SIZE, double PACKET_SEND_LOSS_PROB, double PACKET_RECV_LOSS_PROB, double MONITORING_PACKET_RECV_LOSS_PROB, int MAX_RETRIES, long freshnessInterval)
 {
     this->clientPort = clientPort;
     this->serverAddress = serverAddress;
     this->serverPort = serverPort;
     this->freshnessInterval = freshnessInterval;
-    handler = new Handler(BUFFER_SIZE, PACKET_SEND_LOSS_PROB, PACKET_RECV_LOSS_PROB, MAX_RETRIES);
+    handler = new Handler(BUFFER_SIZE, PACKET_SEND_LOSS_PROB,PACKET_RECV_LOSS_PROB,MONITORING_PACKET_RECV_LOSS_PROB,  MAX_RETRIES);
     inputReader = new UserInputReader();
     isMonitoring = false;
+    timerFlag = false;
 }
 
 void Client::startConnection()
@@ -80,6 +81,7 @@ void Client::startServices()
             break;
         }
     } while (choice != 6);
+    cout << "Program exiting ." << endl;
 }
 
 void Client::startRead(string requestType)
@@ -156,6 +158,7 @@ void Client::startInsert(string requestType)
 
     // Send request and receive reply from server
     string replyFromServer = handler->sendOverUDP(requestContent);
+    
 
     // Process reply from server
     processReplyFromServer(replyFromServer);
@@ -180,12 +183,22 @@ void Client::startMonitor(string requestType)
     // Process reply from server
     processReplyFromServer(replyFromServer);
 
-    while (isMonitoring)
-    {
+    std::thread timerThread(&Client::monitorTimer, this, monitorMinutes);
+    timerThread.detach(); // Detach the thread to run independently
+    timerFlag = true;
+
+    while (isMonitoring) {
         // Receives monitoring updates from server
+        
         string monitorFromServer = handler->monitorOverUDP();
+        
         // Process monitoring reply from server
         processReplyFromServer(monitorFromServer);
+
+        if(!isMonitoring){
+            break;
+        }
+        
     }
 }
 
@@ -229,6 +242,14 @@ void Client::startAppend(string requestType)
 void Client::processReplyFromServer(string message)
 {
     // Splitting the message into parts
+    if(message.empty()) {
+        cout << "Simulated message loss.." << endl;
+        return;
+    }
+    else if(message == "Monitoring") {
+        return;
+    }
+
     vector<string> messageParts;
     string delimiter = ":";
     size_t pos = 0;
@@ -300,11 +321,33 @@ void Client::processReplyFromServer(string message)
     else if (replyType == "3e2")
     {
         cout << "\nMonitor request ended: " << replyContents << endl;
-        isMonitoring = false;
+        this->isMonitoring = false;
+        this->timerFlag = false;
     }
     else if (replyType == "3e3")
     {
         cout << "\nMonitor request failed: " << replyContents << endl;
+    }
+    else if( replyType =="4"){
+        cout << "\nDelete request successful: " << replyContents << endl;
+    }
+    else if (replyType == "4e1" || replyType == "4e2")
+    {
+        cout << "\nDelete request failed: " << replyContents << endl;
+    }
+    else if (replyType == "4e3")
+    {
+        cout << "\nMonitor stopped: " << replyContents << endl;
+        this->isMonitoring = false;
+        this->timerFlag = false;
+    }
+    else if (replyType == "5") 
+    {
+        cout << "\nAppend successfull: " << replyContents << endl;
+    }
+    else if (replyType == "5e1" || replyType == "5e2" || replyType == "5e3" || replyType == "5e4") 
+    {
+        cout << "\nAppend failed: " << replyContents << endl;
     }
     else if (replyType == "6")
     {
@@ -372,7 +415,7 @@ void Client::processReplyFromServer(string message)
 
     ConsoleUI::displaySeparator('=', 41);
 
-    printCacheContent();
+    // printCacheContent();
 }
 
 string Client::concatenateFromIndex(vector<string> &elements, int startIndex, string delimiter)
@@ -411,4 +454,23 @@ void Client::printCacheContent()
         ConsoleUI::displaySeparator('-', 41);
     }
     ConsoleUI::displaySeparator('=', 41);
+}
+
+void Client::monitorTimer(long monitorMinutes) {
+    // Convert monitorMinutes to milliseconds
+    long extraBufferTime = 0.25 * 60 * 1000;
+    long milliseconds = (monitorMinutes * 60 * 1000) + extraBufferTime;
+    
+    // Sleep for the specified duration
+    std::this_thread::sleep_for(std::chrono::milliseconds(milliseconds));
+
+    if(!timerFlag) {
+        
+        return;
+    }
+    // Update the isMonitoring flag
+    this->isMonitoring = false;
+    cout << "\nMonitor stopped by Client: Possible reason could be loss of server packet" << endl;
+    
+                    
 }

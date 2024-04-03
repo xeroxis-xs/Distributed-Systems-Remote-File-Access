@@ -31,6 +31,22 @@ public class Monitor {
         size++;
         System.out.println("Server: New subscriber added to monitor list");
     }
+    
+    public void removeSubscriber(InetAddress clientAddress, int clientPort, String filePath)
+    {
+        for(int i = 0; i < size; i++)
+        {
+            if(subscribers[i].getClientAddress().equals(clientAddress) && subscribers[i].getClientPort() == clientPort && subscribers[i].getFilePath().equals(filePath))
+            {
+                
+                System.arraycopy(subscribers, i + 1, subscribers, i, size - i - 1);
+                size--;
+                System.out.println("Server: Subscriber " + (subscribers[i].getClientAddress()).getHostAddress() + ":" + subscribers[i].getClientPort() + " with filepath " + subscribers[i].getFilePath() + " was removed");
+                return;
+            }
+            System.out.println("Server: Subscriber not found in monitor list");
+        }
+    }
 
     // Get all subscribers as a collection
     public List<Subscriber> getAllSubscribersAsList() {

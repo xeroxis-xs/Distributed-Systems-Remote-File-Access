@@ -20,6 +20,7 @@ private:
     int BUFFER_SIZE;
     double PACKET_SEND_LOSS_PROB;
     double PACKET_RECV_LOSS_PROB;
+    double MONITORING_PACKET_RECV_LOSS_PROB;
     int MAX_RETRIES;
     string clientAddress;
     int clientPort;
@@ -28,7 +29,7 @@ private:
     SOCKET socketDescriptor;
 
 public:
-    Handler(int BUFFER_SIZE, double PACKET_SEND_LOSS_PROB, double PACKET_RECV_LOSS_PROB, int MAX_RETRIES);
+    Handler(int BUFFER_SIZE, double PACKET_SEND_LOSS_PROB, double PACKET_RECV_LOSS_PROB,double MONITORING_PACKET_RECV_LOSS_PROB, int MAX_RETRIES);
 
     string getClientAddress();
     string generateRequestId(string clientAddress, int clientPort);
