@@ -9,6 +9,9 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import utils.ConsoleUI;
 
+/**
+ * Handler class is used to handle the incoming requests from the client
+ */
 public class Handler {
     private int serverPort;
     private DatagramSocket socket;
@@ -19,6 +22,10 @@ public class Handler {
         this.PACKET_SEND_LOSS_PROB = PACKET_SEND_LOSS_PROB;
     }
 
+    /**
+     * Open UDP Socket for client-server communication
+     * @param serverPort server port number
+     */
     public void openPort(int serverPort) {
         try {
             // Open UDP Socket
@@ -33,18 +40,29 @@ public class Handler {
         }
     }
 
+    /**
+     * Generate the server request Id by incrementing the counter
+     * @param clientAddress client address
+     * @param clientPort client port
+     * @return the incremented request Id with client address and port
+     */
     public String generateRequestId(String clientAddress, int clientPort) {
         // Generate a unique request Id based on client address and port
         return this.requestIdCounter.incrementAndGet() + ":" + clientAddress + ":" + clientPort;
     }
 
-    public String sendOverUDP(InetAddress clientAddress, int clientPort, String requestContent) {
-        String unmarshalledData = null;
+    /**
+     * Send a message to the client over UDP
+     * @param clientAddress client address
+     * @param clientPort client port
+     * @param replyContent the reply content to be sent to the client
+     */
+    public void sendOverUDP(InetAddress clientAddress, int clientPort, String replyContent) {
         try {
             // Create the message payload structure
             String messageType = "1";
             String requestId = this.generateRequestId(clientAddress.getHostAddress(), clientPort);
-            String message = messageType + ":" + requestId + ":" + requestContent;
+            String message = messageType + ":" + requestId + ":" + replyContent;
 
             // Marshal the data into a byte array
             byte[] marshalledData = utils.Marshaller.marshal(message);
@@ -63,9 +81,13 @@ public class Handler {
         } catch (IOException e) {
             System.out.println("\nAn IO error occurred: " + e.getMessage());
         }
-        return unmarshalledData;
     }
 
+    /**
+     * Recevie a message from the client over UDP
+     * @param receivePacket received datagram packet
+     * @return the client address, port and unmarshalled data
+     */
     public Object[] receiveOverUDP(DatagramPacket receivePacket) {
         Object[] result = new Object[3];
         InetAddress clientAddress = null;

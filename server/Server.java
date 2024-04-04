@@ -7,6 +7,9 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.List;
 
+/**
+ * Server class
+ */
 public class Server {
     private int BUFFER_SIZE;
     private int HISTORY_SIZE;
@@ -16,6 +19,7 @@ public class Server {
     private History history;
     private Monitor monitor;
     private Handler handler;
+
 
     // Constructor
     public Server(int BUFFER_SIZE, int HISTORY_SIZE, int MONITOR_SIZE, boolean AT_MOST_ONCE, double PACKET_SEND_LOSS_PROB) {
@@ -37,6 +41,11 @@ public class Server {
 
     }
 
+    /**
+     * Open UDP socket and run a whileloop to listen for messages
+     *
+     * @param serverPort port of the server for client to conenct to
+     */
     public void listen(int serverPort) {
         // Open UDP Socket
         handler.openPort(serverPort);
@@ -64,10 +73,17 @@ public class Server {
         }
     }
 
+    /**
+     * Process any messages received and perform task
+     *
+     * @param clientAddress address of client
+     * @param clientPort port of client
+     * @param unmarshalledData unmarshalled data from client
+     */
     private void processRequest(InetAddress clientAddress, int clientPort, String unmarshalledData) {
         if (unmarshalledData != null) {
             String[] messageParts = unmarshalledData.split(":");
-            String messageType = messageParts[0]; // 0 is request; 1 is reply
+            // String messageType = messageParts[0]; // 0 is request; 1 is reply
             String requestCounter = messageParts[1];
             String clientAddressString = messageParts[2];
             String clientPortInt = messageParts[3];
@@ -134,6 +150,13 @@ public class Server {
 
     }
 
+    /**
+     * Exectute Read File Operation
+     *
+     * @param clientAddress address of client
+     * @param clientPort port of client
+     * @param requestContents application specific content
+     */
     private void startRead(InetAddress clientAddress, int clientPort, String requestContents) {
         String[] requestContentsParts = requestContents.split(":");
         String filePath = requestContentsParts[0];
@@ -194,6 +217,14 @@ public class Server {
         handler.sendOverUDP(clientAddress, clientPort, content);
     }
 
+    /**
+     * Exectute Insert Content Into File Operation
+     *
+     * @param clientAddress address of client
+     * @param clientPort port of client
+     * @param requestContents application specific content
+     * @return a reply content that will be stored in the History
+     */
     private String startInsert(InetAddress clientAddress, int clientPort, String requestContents) {
         String[] requestContentsParts = requestContents.split(":");
         String filePath = requestContentsParts[0];
@@ -259,6 +290,7 @@ public class Server {
                     tempFile.delete(); // Delete temporary file
 
                     // Add file and current timestamp to fileTimeStamps
+                    // to indicate that the file has been modified
                     fileTmservers.put(filePath, System.currentTimeMillis());
                 }
             } catch (IOException e) {
@@ -275,6 +307,13 @@ public class Server {
         return content;
     }
 
+    /**
+     * Exectute Monitor File Operation
+     *
+     * @param clientAddress address of client
+     * @param clientPort port of client
+     * @param requestContents application specific content
+     */
     private void startMonitor(InetAddress clientAddress, int clientPort, String requestContents) {
         String[] requestContentsParts = requestContents.split(":");
         String filePath = requestContentsParts[0];
@@ -295,10 +334,17 @@ public class Server {
             System.out.println("Server: File for monitoring not found!");
             content = "3e3:File for monitoring not found. Failed to register for monitoring callbacks.";
         }
-
+        // Inform client about the status
         handler.sendOverUDP(clientAddress, clientPort, content);
     }
 
+    /**
+     * Issue Callback
+     * Inform subscribers that the subscribed file has an updated content
+     * Updated content caused by Insert and Append operation
+     *
+     * @param filePath the file that has the updated content
+     */
     private void informSubscribers(String filePath) {
         try {
             // Open the file in read-only mode
@@ -337,6 +383,9 @@ public class Server {
 
     }
 
+    /**
+     * Inform the subscribers that their monitoring has expired
+     */
     private void informExpiredSubscribers() {
 
         // Get expired subscribers
@@ -352,6 +401,12 @@ public class Server {
         }
     }
 
+    /**
+     * Issue Callback
+     * Inform subscribers that the subscribed file has been deleted
+     *
+     * @param filePath the file that has been deleted
+     */
     private void informSubscribersAboutDeletion(String filePath){
         String content = "4e3:The file " + filePath + " has been deleted. Monitoring stopped.";
 
@@ -368,6 +423,13 @@ public class Server {
         }
     }
 
+    /**
+     * Exectute File Delete Operation
+     *
+     * @param clientAddress address of client
+     * @param clientPort port of client
+     * @param requestContents application specific content
+     */
     private void startDelete(InetAddress clientAddress, int clientPort, String requestContents) {
         String[] requestContentsParts = requestContents.split(":");
         String filePath = requestContentsParts[0];
@@ -381,13 +443,13 @@ public class Server {
             System.out.println("Server: File found!");
             File myObj = new File(filePath);
             if (myObj.delete()) {
-                System.out.println("Deleted the file: " + myObj.getName());
+                System.out.println("Server: Deleted the file: " + myObj.getName());
                 content = "4:File has been deleted successfully.";
 
                 // Inform subscribers about file deletion
                 informSubscribersAboutDeletion(filePath);
             } else {
-                System.out.println("Failed to delete the file.");
+                System.out.println("Server: Failed to delete the file.");
                 content = "4e2:Error deleting file. Please try again.";
             }
         } else {
@@ -397,9 +459,19 @@ public class Server {
         handler.sendOverUDP(clientAddress, clientPort, content);
     }
 
+    /**
+     * Exectute File Append Operation
+     *
+     * @param clientAddress address of client
+     * @param clientPort port of client
+     * @param requestContents application specific content
+     * @return a reply content that will be stored in the History
+     */
     private String startAppend(InetAddress clientAddress, int clientPort, String requestContents) {
         String[] requestContentsParts = requestContents.split(":");
+        // Source file to append from
         String srcPath = requestContentsParts[0];
+        // Destination file to append to
         String targetPath = requestContentsParts[1];
         Boolean readFlag = false;
 
@@ -474,6 +546,10 @@ public class Server {
                     randomAccessFile.close();
                     tempRandomAccessFile.close();
                     tempFile.delete(); // Delete temporary file
+
+                    // Add file and current timestamp to fileTimeStamps since target file is modified
+                    fileTmservers.put(targetPath, System.currentTimeMillis());
+
                 } catch (IOException e) {
                     System.out.println("Server: Error: Error appending into destination file!");
                     content = "5e4:Error appendeding into destination file. Please try again.";
@@ -490,6 +566,11 @@ public class Server {
     }
 
 
+    /**
+     * Check if a request is non-idempotent
+     * @param requestType
+     * @return true = non-idempotent, false = idempotent
+     */
     private boolean isNonIdempotent(String requestType) {
         if (requestType.equals("2") || requestType.equals("5")) {
             System.out.println("Server: Non-idempotent operation");
@@ -517,6 +598,12 @@ public class Server {
         return stringBuilder.toString();
     }
 
+    /**
+     * Get Tmserver(timestamp) of the file and send to client
+     * @param clientAddress address of client
+     * @param clientPort port of client
+     * @param requestContents application specific content
+     */
     private void getFileTmserver(InetAddress clientAddress, int clientPort, String requestContents) {
 
         String[] requestContentsParts = requestContents.split(":");

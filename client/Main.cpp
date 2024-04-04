@@ -1,3 +1,13 @@
+/**
+ * @brief Entry point for the client application.
+ *
+ * This function initializes the client with specified parameters, such as server address,
+ * server port, client port, and network settings. It then starts the connection with the server.
+ *
+ * @param argc Number of command-line arguments.
+ * @param argv Array of command-line argument strings.
+ * @return Exit status (0 for success, non-zero for errors).
+ */
 #include "Client.hpp"
 
 int main(int argc, char *argv[])
@@ -7,6 +17,7 @@ int main(int argc, char *argv[])
     int clientPort = 65535;
     double PACKET_SEND_LOSS_PROB = 0.4;
     double PACKET_RECV_LOSS_PROB = 0;
+    double MONITORING_PACKET_RECV_LOSS_PROB = 0;
     int BUFFER_SIZE = 1024;
     int MAX_RETRIES = 10;
     long freshnessInterval;
@@ -53,7 +64,7 @@ int main(int argc, char *argv[])
     cout << "Initialising: Server address set to " << serverAddress << endl;
     cout << "Initialising: Server port set to " << serverPort << endl;
 
-    Client client(clientPort, serverAddress, serverPort, BUFFER_SIZE, PACKET_SEND_LOSS_PROB, PACKET_RECV_LOSS_PROB, MAX_RETRIES, freshnessInterval);
+    Client client(clientPort, serverAddress, serverPort, BUFFER_SIZE, PACKET_SEND_LOSS_PROB, PACKET_RECV_LOSS_PROB,MONITORING_PACKET_RECV_LOSS_PROB, MAX_RETRIES, freshnessInterval);
     client.startConnection();
 
     return 0;
