@@ -5,9 +5,9 @@ int main(int argc, char *argv[])
     string serverAddress = "127.0.0.1";
     int serverPort = 12345;
     int clientPort = 65535;
-    double PACKET_SEND_LOSS_PROB = 0;
-    double PACKET_RECV_LOSS_PROB = 0;
-    double MONITORING_PACKET_RECV_LOSS_PROB = 0;
+    double PACKET_SEND_LOSS_PROB = 0.6;
+    double PACKET_RECV_LOSS_PROB = 0.6;
+    double MONITORING_PACKET_RECV_LOSS_PROB = 0.6;
     int BUFFER_SIZE = 1024;
     int MAX_RETRIES = 10;
     long freshnessInterval;
@@ -54,7 +54,7 @@ int main(int argc, char *argv[])
     cout << "Initialising: Server address set to " << serverAddress << endl;
     cout << "Initialising: Server port set to " << serverPort << endl;
 
-    Client client(clientPort, serverAddress, serverPort, BUFFER_SIZE, PACKET_SEND_LOSS_PROB, PACKET_RECV_LOSS_PROB,MONITORING_PACKET_RECV_LOSS_PROB, MAX_RETRIES, freshnessInterval);
+    Client client(clientPort, serverAddress, serverPort, BUFFER_SIZE, PACKET_SEND_LOSS_PROB, PACKET_RECV_LOSS_PROB, MONITORING_PACKET_RECV_LOSS_PROB, MAX_RETRIES, freshnessInterval);
     client.startConnection();
 
     return 0;
