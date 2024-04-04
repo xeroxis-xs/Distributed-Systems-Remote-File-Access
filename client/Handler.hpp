@@ -8,6 +8,7 @@
 #include <atomic>
 #include <Windows.h>
 #include <WS2tcpip.h>
+#include <random>
 #include "../utils/Marshaller.hpp"
 
 #pragma comment(lib, "Ws2_32.lib")
@@ -32,10 +33,11 @@ public:
 
     string getClientAddress();
     string generateRequestId(string clientAddress, int clientPort);
-    string receiveOverUDP(SOCKET socket);
+    string receiveOverUDP(SOCKET socket,  vector<char> requestContent);
     string sendOverUDP(string requestContent);
     string monitorOverUDP();
     string GetWSAErrorMessage(int errorCode);
+    double getRandomDouble();
 
     void connectToServer(string serverAddress, int serverPort);
     void openPort(int clientPort);

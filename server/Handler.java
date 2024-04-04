@@ -13,9 +13,10 @@ public class Handler {
     private int serverPort;
     private DatagramSocket socket;
     private AtomicInteger requestIdCounter = new AtomicInteger(0);
+    private double PACKET_SEND_LOSS_PROB;
 
-    public Handler() {
-
+    public Handler(double PACKET_SEND_LOSS_PROB) {
+        this.PACKET_SEND_LOSS_PROB = PACKET_SEND_LOSS_PROB;
     }
 
     public void openPort(int serverPort) {
@@ -52,8 +53,13 @@ public class Handler {
             DatagramPacket sendPacket = new DatagramPacket(marshalledData, marshalledData.length, clientAddress,
                     clientPort);
 
-            // Send over UDP
-            this.socket.send(sendPacket);
+            if (Math.random() < PACKET_SEND_LOSS_PROB) {
+                System.out.println("***** Simulating sending message loss from server *****");
+            } else {
+                // Send over UDP
+                this.socket.send(sendPacket);
+            }
+
         } catch (IOException e) {
             System.out.println("\nAn IO error occurred: " + e.getMessage());
         }

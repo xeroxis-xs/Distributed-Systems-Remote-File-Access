@@ -13,12 +13,15 @@ public class Server {
     private int MONITOR_SIZE;
     private Map<String, Long> fileTmservers = new HashMap<>();
     private boolean AT_MOST_ONCE;
-    private Handler handler = new Handler();
     private History history;
     private Monitor monitor;
+    private Handler handler;
 
     // Constructor
-    public Server(int BUFFER_SIZE, int HISTORY_SIZE, int MONITOR_SIZE, boolean AT_MOST_ONCE) {
+    public Server(int BUFFER_SIZE, int HISTORY_SIZE, int MONITOR_SIZE, boolean AT_MOST_ONCE, double PACKET_SEND_LOSS_PROB) {
+
+        this.handler = new Handler(PACKET_SEND_LOSS_PROB);
+
         if (AT_MOST_ONCE) {
             this.BUFFER_SIZE = BUFFER_SIZE;
             this.HISTORY_SIZE = HISTORY_SIZE;
@@ -361,7 +364,7 @@ public class Server {
                 // Remove subscriber since monitoring is stopped
                 monitor.removeSubscriber(subscriber.getClientAddress(), subscriber.getClientPort(), filePath);
             }
-            
+
         }
     }
 

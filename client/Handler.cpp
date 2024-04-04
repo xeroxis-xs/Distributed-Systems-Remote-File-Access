@@ -128,17 +128,25 @@ string Handler::sendOverUDP(string requestContent)
         // Marshal the data into a byte array
         vector<char> marshalledData = Marshaller::marshal(message);
 
-        // Send data over UDP
-        int bytesSent = sendto(this->socketDescriptor, marshalledData.data(), marshalledData.size(), 0,
-                               (SOCKADDR *)&this->serverAddress, sizeof(this->serverAddress));
-        if (bytesSent == SOCKET_ERROR)
-        {
-            cerr << "Send failed with error: " << WSAGetLastError() << endl;
-            return "";
+        double random = getRandomDouble();
+        cout << "Random: "<< random << endl;
+        if (random < PACKET_SEND_LOSS_PROB){
+            cout << "***** Simulating sending message loss from client *****" << endl;
+        }
+        else {
+             // Send data over UDP
+            int bytesSent = sendto(this->socketDescriptor, marshalledData.data(), marshalledData.size(), 0,
+                                (SOCKADDR *)&this->serverAddress, sizeof(this->serverAddress));
+            if (bytesSent == SOCKET_ERROR)
+            {
+                cerr << "Send failed with error: " << WSAGetLastError() << endl;
+                return "";
+            }
         }
 
+
         // Receive over UDP
-        unmarshalledData = this->receiveOverUDP(this->socketDescriptor);
+        unmarshalledData = this->receiveOverUDP(this->socketDescriptor, marshalledData);
     }
     catch (exception &e)
     {
@@ -147,7 +155,7 @@ string Handler::sendOverUDP(string requestContent)
     return unmarshalledData;
 }
 
-string Handler::receiveOverUDP(SOCKET socket)
+string Handler::receiveOverUDP(SOCKET socket,  vector<char> marshalledData)
 {
     string unmarshalledData;
     string unmarshalledDataAssign;
@@ -186,6 +194,15 @@ string Handler::receiveOverUDP(SOCKET socket)
         {
             cerr << "\nAn error occurred: " << e.what() << endl;
             retries++;
+            // Reend data over UDP
+            int bytesSent = sendto(this->socketDescriptor, marshalledData.data(), marshalledData.size(), 0,
+                                (SOCKADDR *)&this->serverAddress, sizeof(this->serverAddress));
+            if (bytesSent == SOCKET_ERROR)
+            {
+                cerr << "Send failed with error: " << WSAGetLastError() << endl;
+                return "";
+            }
+            cerr << "Retransmitting ("<< retries<<")..." << endl;
         }
     }
 
@@ -254,4 +271,18 @@ string Handler::GetWSAErrorMessage(int errorCode)
     }
 
     return errorMessage;
+}
+
+double Handler::getRandomDouble() {
+    // Create a random device
+    std::random_device rd;
+
+    // Create a random number generator
+    std::mt19937 gen(rd());
+
+    // Create a uniform distribution between 0 and 1
+    std::uniform_real_distribution<double> dis(0.0, 1.0);
+
+    // Generate and return a random double
+    return dis(gen);
 }

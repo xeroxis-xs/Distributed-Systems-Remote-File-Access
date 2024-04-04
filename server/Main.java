@@ -3,12 +3,13 @@ package server;
 public class Main {
 
     public static void main(String[] args) {
-        
+
         int serverPort = 12345;
         int BUFFER_SIZE = 1024;
         int HISTORY_SIZE = 100;
         int MONITOR_SIZE = 100;
         boolean AT_MOST_ONCE = true;
+        double PACKET_SEND_LOSS_PROB = 0.4;
 
 		if (args.length > 0) {
 			try {
@@ -33,7 +34,7 @@ public class Main {
             System.out.println("Server: No history is maintained");
         }
 
-        Server server = new Server(BUFFER_SIZE, HISTORY_SIZE, MONITOR_SIZE, AT_MOST_ONCE);
+        Server server = new Server(BUFFER_SIZE, HISTORY_SIZE, MONITOR_SIZE, AT_MOST_ONCE, PACKET_SEND_LOSS_PROB);
         server.listen(serverPort);
 
     }

@@ -5,7 +5,7 @@ int main(int argc, char *argv[])
     string serverAddress = "127.0.0.1";
     int serverPort = 12345;
     int clientPort = 65535;
-    double PACKET_SEND_LOSS_PROB = 0;
+    double PACKET_SEND_LOSS_PROB = 0.4;
     double PACKET_RECV_LOSS_PROB = 0;
     int BUFFER_SIZE = 1024;
     int MAX_RETRIES = 10;
