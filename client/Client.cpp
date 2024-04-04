@@ -1,3 +1,10 @@
+/**
+ * @file Client.cpp
+ * @brief Implementation of the Client class methods.
+ *
+ * The Client class provides functionality for connecting to a server, handling requests,
+ * managing cache entries, and monitoring server responses.
+ */
 #include "Client.hpp"
 #include "Handler.hpp"
 
@@ -6,6 +13,18 @@
 #include <sstream>
 using std::replace;
 
+/**
+ * @brief Constructor for the Client class.
+ * @param clientPort The port number for the client.
+ * @param serverAddress The address of the server.
+ * @param serverPort The port number of the server.
+ * @param BUFFER_SIZE The buffer size for communication.
+ * @param PACKET_SEND_LOSS_PROB The packet send loss probability.
+ * @param PACKET_RECV_LOSS_PROB The packet receive loss probability.
+ * @param MONITORING_PACKET_RECV_LOSS_PROB The monitoring packet receive loss probability.
+ * @param MAX_RETRIES The maximum number of retries for requests.
+ * @param freshnessInterval The freshness interval for cache entries.
+ */
 Client::Client(int clientPort, string serverAddress, int serverPort, int BUFFER_SIZE, double PACKET_SEND_LOSS_PROB, double PACKET_RECV_LOSS_PROB, double MONITORING_PACKET_RECV_LOSS_PROB, int MAX_RETRIES, long freshnessInterval)
 {
     this->clientPort = clientPort;
@@ -18,6 +37,9 @@ Client::Client(int clientPort, string serverAddress, int serverPort, int BUFFER_
     timerFlag = false;
 }
 
+/**
+ * @brief Initiates the client connection.
+ */
 void Client::startConnection()
 {
     try
@@ -34,6 +56,9 @@ void Client::startConnection()
     }
 }
 
+/**
+ * @brief Starts various services for user to choose (read, insert, monitor, delete, append).
+ */
 void Client::startServices()
 {
     int choice;
@@ -84,16 +109,28 @@ void Client::startServices()
     cout << "Program exiting ." << endl;
 }
 
+/**
+ * @brief Initiates an read request.
+ * @param requestType The type of request (e.g., "1").
+ *
+ * This method prompts the user to enter the pathname of the target file where content
+ * should be read, the offset (in bytes) from which to read, and the bytes to be
+ * read. It constructs a request to the server, sends it, and processes the reply
+ * from the server.
+ * */
 void Client::startRead(string requestType)
 {
+    // Request the file path to be read from
     cout << "\nEnter the pathname of the target file to be read: ";
     cout << "\nE.g. server/storage/hello.txt" << endl;
     string pathname = inputReader->getString();
 
+    // Request the offset bytes to be read from
     cout << "\nEnter the offset of the file content (in bytes) to read from: ";
     cout << "\nE.g. 0" << endl;
     long offset = inputReader->getLong();
 
+    // Request the number of bytes to read
     cout << "\nEnter the number of bytes to read: ";
     cout << "\nE.g. 2" << endl;
     int bytesToRead = inputReader->getInt();
@@ -102,6 +139,7 @@ void Client::startRead(string requestType)
     string pathnameOffsetBytesToReady = pathname + ":" + to_string(offset) + ":" + to_string(bytesToRead);
     string requestContent = requestType + ":" + pathnameOffsetBytesToReady;
 
+    // Check if request exists in the cache
     if (cache.find(pathnameOffsetBytesToReady) != cache.end())
     {
         cout << "Found in cache!" << endl;
@@ -143,16 +181,28 @@ void Client::startRead(string requestType)
     }
 }
 
+/**
+ * @brief Initiates an insert request.
+ * @param requestType The type of request (e.g., "2").
+ *
+ * This method prompts the user to enter the pathname of the target file where content
+ * should be inserted, the offset (in bytes) from which to insert, and the content to be
+ * inserted. It constructs a request to the server, sends it, and processes the reply
+ * from the server.
+ */
 void Client::startInsert(string requestType)
 {
+    // Request file path to insert content into
     cout << "\nEnter the pathname of the target file to insert into: ";
     cout << "\nE.g. server/storage/hello.txt" << endl;
     string pathname = inputReader->getString();
 
+    // Request the offset bytes to insert from
     cout << "\nEnter the offset of the file content (in bytes) to insert from: ";
     cout << "\nE.g. 0" << endl;
     long offset = inputReader->getLong();
 
+    // Request the content to be inserted
     cout << "\nEnter the content to be inserted into the file: ";
     cout << "\nE.g. abc" << endl;
     string stringToInsert = inputReader->getString();
@@ -167,12 +217,23 @@ void Client::startInsert(string requestType)
     processReplyFromServer(replyFromServer);
 }
 
+/**
+ * @brief Initiates monitoring of a target file.
+ * @param requestType The type of request (e.g., "3").
+ *
+ * This method prompts the user to enter the pathname of the target file to be monitored
+ * and the duration (in minutes) for which they want to receive updates. It constructs
+ * a request to the server, starts a timer thread for monitoring, and continuously receives
+ * monitoring updates from the server until the monitoring period ends.
+ */
 void Client::startMonitor(string requestType)
-{
+{   
+    // Request the file path to be monitored
     cout << "\nEnter the pathname of the target file to be monitored: ";
     cout << "\nE.g. server/storage/hello.txt" << endl;
     string pathname = inputReader->getString();
 
+    // Request the duration to be monitored for
     cout << "\nEnter the duration (in minutes) you would like to receive updates for: ";
     cout << "\nE.g. 1" << endl;
     long monitorMinutes = inputReader->getLong();
@@ -202,9 +263,16 @@ void Client::startMonitor(string requestType)
     }
 }
 
+/**
+ * @brief Initiates a delete request.
+ * @param requestType The type of request (e.g., "4").
+ *
+ * This method prompts the user to enter the pathname of the target file to be deleted.
+ * It constructs a request to the server, sends it, and processes the reply from the server.
+ */
 void Client::startDelete(string requestType)
 {
-    // Implementation for idempotent service
+    // Request the file path to be deleted
     cout << "\nEnter the pathname of the target file to be deleted: ";
     cout << "\nE.g. server/storage/hello.txt" << endl;
     string pathname = inputReader->getString();
@@ -219,14 +287,22 @@ void Client::startDelete(string requestType)
     processReplyFromServer(replyFromServer);
 }
 
+/**
+ * @brief Initiates an append request.
+ * @param requestType The type of request (e.g., "5").
+ *
+ * This method prompts the user to enter the pathname of the source file to be appended from
+ * and the destination file to which the content will be appended. It constructs a request to
+ * the server, sends it, and processes the reply from the server.
+ */
 void Client::startAppend(string requestType)
 {
-    // Implementation for non-idempotent service
+    // Request the source file path where content will be retrieved from
     cout << "\nEnter the pathname of the source file to be appended from: ";
     cout << "\nE.g. server/storage/hello.txt" << endl;
     string srcPath = inputReader->getString();
 
-
+    // Request the destination file where the content will be appended to
     cout << "\nEnter the pathname of the destination file to be appended to: ";
     cout << "\nE.g. server/storage/hello.txt" << endl;
     string targetPath = inputReader->getString();
@@ -239,6 +315,15 @@ void Client::startAppend(string requestType)
     processReplyFromServer(replyFromServer);
 }
 
+/**
+ * @brief Processes the reply received from the server.
+ * @param message The reply message from the server.
+ *
+ * This method parses the reply message and handles different reply types based on the
+ * specified format. It extracts relevant information such as message type, server address,
+ * port, and reply contents. Depending on the reply type, it displays appropriate messages
+ * or updates cache entries.
+ */
 void Client::processReplyFromServer(string message)
 {
     // Splitting the message into parts
@@ -414,10 +499,19 @@ void Client::processReplyFromServer(string message)
     }
 
     ConsoleUI::displaySeparator('=', 41);
-
     // printCacheContent();
 }
 
+/**
+ * @brief Concatenates elements from a vector into a single string starting from a given index.
+ * @param elements The vector of strings to concatenate.
+ * @param startIndex The index from which to start concatenation.
+ * @param delimiter The delimiter to use between concatenated elements.
+ * @return The concatenated string.
+ *
+ * This method takes a vector of strings, a starting index, and a delimiter. It concatenates
+ * the elements from the vector into a single string, using the specified delimiter between them.
+ */
 string Client::concatenateFromIndex(vector<string> &elements, int startIndex, string delimiter)
 {
     string concatenatedString;
@@ -430,10 +524,16 @@ string Client::concatenateFromIndex(vector<string> &elements, int startIndex, st
     return concatenatedString;
 }
 
+/**
+ * @brief Prints the content of the cache.
+ *
+ * This method iterates through the cache entries and displays relevant information,
+ * including the cache key (pathname), content, and timestamps (Tc and Tmclient) in
+ * local time. It provides an overview of the cached data for monitoring purposes.
+ */
 void Client::printCacheContent()
 {
     // Iterate through the cache
-
     std::cout << "\n\nPrinting Cache :" << std::endl;
     ConsoleUI::displaySeparator('=', 41);
     for (const auto &entry : cache)
@@ -456,6 +556,14 @@ void Client::printCacheContent()
     ConsoleUI::displaySeparator('=', 41);
 }
 
+/**
+ * @brief Monitors the specified duration and stops monitoring.
+ * @param monitorMinutes The duration (in minutes) to monitor.
+ *
+ * This method converts the specified monitoring duration to milliseconds, adds an extra buffer time,
+ * and sleeps for that duration. If the timer flag is not set (indicating manual stop), it updates
+ * the `isMonitoring` flag to false and prints a message indicating the possible reason for stopping.
+ */
 void Client::monitorTimer(long monitorMinutes) {
     // Convert monitorMinutes to milliseconds
     long extraBufferTime = 0.25 * 60 * 1000;
@@ -471,6 +579,4 @@ void Client::monitorTimer(long monitorMinutes) {
     // Update the isMonitoring flag
     this->isMonitoring = false;
     cout << "\nMonitor stopped by Client: Possible reason could be loss of server packet" << endl;
-
-
 }

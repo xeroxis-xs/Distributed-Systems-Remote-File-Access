@@ -1,3 +1,13 @@
+/**
+ * @brief Entry point for the client application.
+ *
+ * This function initializes the client with specified parameters, such as server address,
+ * server port, client port, and network settings. It then starts the connection with the server.
+ *
+ * @param argc Number of command-line arguments.
+ * @param argv Array of command-line argument strings.
+ * @return Exit status (0 for success, non-zero for errors).
+ */
 #include "Client.hpp"
 
 int main(int argc, char *argv[])

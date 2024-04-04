@@ -1,3 +1,10 @@
+/**
+ * @file Handler.cpp
+ * @brief Implementation of the Handler class for communication with a server.
+ *
+ * The Handler class provides functionality for managing communication parameters,
+ * generating request IDs, and connecting to a server.
+ */
 #include "Handler.hpp"
 
 Handler::Handler(int BUFFER_SIZE, double PACKET_SEND_LOSS_PROB, double PACKET_RECV_LOSS_PROB, double MONITORING_PACKET_RECV_LOSS_PROB, int MAX_RETRIES)
@@ -7,6 +14,14 @@ Handler::Handler(int BUFFER_SIZE, double PACKET_SEND_LOSS_PROB, double PACKET_RE
     clientAddress = getClientAddress();
 }
 
+/**
+ * @brief Retrieves the client's IP address.
+ * @return The client's IP address.
+ *
+ * This initializes the Windows Sockets API, retrieves the computer's hostname,
+ * and resolves it to an IP address. It then returns the IP address as a string.
+ * If any errors occur during this process, appropriate error messages are displayed.
+ */
 string Handler::getClientAddress()
 {
     WSADATA wsaData;
@@ -57,11 +72,28 @@ string Handler::getClientAddress()
     return ipStr;
 }
 
+/**
+ * @brief Generates a unique request ID.
+ * @param clientAddress The client's IP address.
+ * @param clientPort The client's port number.
+ * @return The generated request ID.
+ *
+ * This constructs a request ID by incrementing a counter and combining it with the client's
+ * IP address and port number. The resulting request ID is unique for each request.
+ */
 string Handler::generateRequestId(string clientAddress, int clientPort)
 {
     return to_string(this->requestIdCounter++) + ":" + clientAddress + ":" + to_string(clientPort);
 }
 
+/**
+ * @brief Connects to the server.
+ * @param serverAddress The server's IP address.
+ * @param serverPort The server's port number.
+ *
+ * This method initializes the server address structure with the specified IP address and port number.
+ * It indicates a successful connection by printing a message to the console.
+ */
 void Handler::connectToServer(string serverAddress, int serverPort)
 {
     this->serverAddress.sin_family = AF_INET;
@@ -70,6 +102,14 @@ void Handler::connectToServer(string serverAddress, int serverPort)
     cout << "\nSuccessfully connected to " << serverAddress << ":" << serverPort << endl;
 }
 
+/**
+ * @brief Opens a port for communication.
+ * @param clientPort The client's port number.
+ *
+ * This method initializes the Windows Sockets API, creates a socket, binds it to the specified
+ * client port, and listens for incoming connections. If any errors occur during this process,
+ * appropriate error messages are displayed, and the program exits.
+ */
 void Handler::openPort(int clientPort)
 {
     try
@@ -109,12 +149,27 @@ void Handler::openPort(int clientPort)
     }
 }
 
+/**
+ * @brief Disconnects from the server.
+ *
+ * This method closes the socket descriptor and cleans up the Windows Sockets API.
+ */
 void Handler::disconnect()
 {
     closesocket(this->socketDescriptor);
     WSACleanup();
 }
 
+/**
+ * @brief Sends data over UDP to the server.
+ * @param requestContent The content to be sent.
+ * @return The unmarshalled data received from the server.
+ *
+ * This method constructs a message payload by combining the message type, request ID,
+ * and request content. It then marshals the data into a byte array and sends it over UDP.
+ * If a simulated message loss occurs (based on the PACKET_SEND_LOSS_PROB), an empty string is returned.
+ * Otherwise, the method receives data over UDP and returns the unmarshalled data.
+ */
 string Handler::sendOverUDP(string requestContent)
 {
     string unmarshalledData = "";
@@ -156,6 +211,15 @@ string Handler::sendOverUDP(string requestContent)
     return unmarshalledData;
 }
 
+/**
+ * @brief Receives data over UDP from the server.
+ * @param socket The socket descriptor.
+ * @return The unmarshalled data received from the server.
+ *
+ * This method sets a timeout for 5 seconds, receives data from the server over UDP,
+ * and unmarshals the received data into a string. If a simulated message loss occurs
+ * (based on the PACKET_RECV_LOSS_PROB), an empty string is returned.
+ */
 string Handler::receiveOverUDP(SOCKET socket)
 {
     string unmarshalledData;
@@ -214,6 +278,14 @@ string Handler::receiveOverUDP(SOCKET socket)
     return unmarshalledData;
 }
 
+/**
+ * @brief Monitors data over UDP from the server.
+ * @return The unmarshalled data received from the server during monitoring.
+ *
+ * This method removes any timeout since it is a blocking operation, receives data from the server over UDP,
+ * and unmarshals the received data into a string. If a simulated message loss occurs (based on the MONITORING_PACKET_RECV_LOSS_PROB),
+ * an empty string is returned. Otherwise, the method returns the unmarshalled data.
+ */
 string Handler::monitorOverUDP()
 {
     string unmarshalledData;
@@ -265,6 +337,14 @@ string Handler::monitorOverUDP()
     return unmarshalledData;
 }
 
+/**
+ * @brief Retrieves the error message associated with a Windows Sockets API error code.
+ * @param errorCode The error code to look up.
+ * @return The error message corresponding to the error code.
+ *
+ * This method uses the Windows Sockets API function FormatMessageA to retrieve the error message
+ * associated with the specified error code. If the message cannot be retrieved, it returns "Unknown error".
+ */
 string Handler::GetWSAErrorMessage(int errorCode)
 {
     std::string errorMessage;
