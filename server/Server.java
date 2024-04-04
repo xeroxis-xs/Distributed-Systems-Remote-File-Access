@@ -20,9 +20,9 @@ public class Server {
     private Monitor monitor;
     private Handler handler;
 
-
     // Constructor
-    public Server(int BUFFER_SIZE, int HISTORY_SIZE, int MONITOR_SIZE, boolean AT_MOST_ONCE, double PACKET_SEND_LOSS_PROB) {
+    public Server(int BUFFER_SIZE, int HISTORY_SIZE, int MONITOR_SIZE, boolean AT_MOST_ONCE,
+            double PACKET_SEND_LOSS_PROB) {
 
         this.handler = new Handler(PACKET_SEND_LOSS_PROB);
 
@@ -76,8 +76,8 @@ public class Server {
     /**
      * Process any messages received and perform task
      *
-     * @param clientAddress address of client
-     * @param clientPort port of client
+     * @param clientAddress    address of client
+     * @param clientPort       port of client
      * @param unmarshalledData unmarshalled data from client
      */
     private void processRequest(InetAddress clientAddress, int clientPort, String unmarshalledData) {
@@ -124,7 +124,11 @@ public class Server {
                         break;
                     case "3":
                         System.out.println("Server: Client request to monitor updates of a file");
-                        startMonitor(clientAddress, clientPort, requestContents);
+                        replyContent = startMonitor(clientAddress, clientPort, requestContents);
+                        if (AT_MOST_ONCE) {
+                            // Add record
+                            history.addRecord(requestCounter, clientAddressString, clientPortInt, replyContent);
+                        }
                         break;
                     case "4":
                         System.out.println("Server: Client request for idempotent service");
@@ -153,8 +157,8 @@ public class Server {
     /**
      * Exectute Read File Operation
      *
-     * @param clientAddress address of client
-     * @param clientPort port of client
+     * @param clientAddress   address of client
+     * @param clientPort      port of client
      * @param requestContents application specific content
      */
     private void startRead(InetAddress clientAddress, int clientPort, String requestContents) {
@@ -220,8 +224,8 @@ public class Server {
     /**
      * Exectute Insert Content Into File Operation
      *
-     * @param clientAddress address of client
-     * @param clientPort port of client
+     * @param clientAddress   address of client
+     * @param clientPort      port of client
      * @param requestContents application specific content
      * @return a reply content that will be stored in the History
      */
@@ -310,11 +314,11 @@ public class Server {
     /**
      * Exectute Monitor File Operation
      *
-     * @param clientAddress address of client
-     * @param clientPort port of client
+     * @param clientAddress   address of client
+     * @param clientPort      port of client
      * @param requestContents application specific content
      */
-    private void startMonitor(InetAddress clientAddress, int clientPort, String requestContents) {
+    private String startMonitor(InetAddress clientAddress, int clientPort, String requestContents) {
         String[] requestContentsParts = requestContents.split(":");
         String filePath = requestContentsParts[0];
         long monitorMinutes = Long.parseLong(requestContentsParts[1]);
@@ -329,6 +333,7 @@ public class Server {
             // Add to monitor list
             monitor.addSubscriber(clientAddress, clientPort, filePath, monitorMinutes);
             // monitor.printAllSubscribers();
+
             content = "3:File for monitoring found. Successfully registered for monitoring callbacks.";
         } else {
             System.out.println("Server: File for monitoring not found!");
@@ -336,6 +341,7 @@ public class Server {
         }
         // Inform client about the status
         handler.sendOverUDP(clientAddress, clientPort, content);
+        return content;
     }
 
     /**
@@ -407,14 +413,14 @@ public class Server {
      *
      * @param filePath the file that has been deleted
      */
-    private void informSubscribersAboutDeletion(String filePath){
+    private void informSubscribersAboutDeletion(String filePath) {
         String content = "4e3:The file " + filePath + " has been deleted. Monitoring stopped.";
 
         List<Subscriber> subscribers = monitor.getAllSubscribersAsList();
 
         // Inform each subscriber about the deletion
         for (Subscriber subscriber : subscribers) {
-            if(subscriber.getFilePath().equals(filePath)){
+            if (subscriber.getFilePath().equals(filePath)) {
                 handler.sendOverUDP(subscriber.getClientAddress(), subscriber.getClientPort(), content);
                 // Remove subscriber since monitoring is stopped
                 monitor.removeSubscriber(subscriber.getClientAddress(), subscriber.getClientPort(), filePath);
@@ -426,8 +432,8 @@ public class Server {
     /**
      * Exectute File Delete Operation
      *
-     * @param clientAddress address of client
-     * @param clientPort port of client
+     * @param clientAddress   address of client
+     * @param clientPort      port of client
      * @param requestContents application specific content
      */
     private void startDelete(InetAddress clientAddress, int clientPort, String requestContents) {
@@ -462,8 +468,8 @@ public class Server {
     /**
      * Exectute File Append Operation
      *
-     * @param clientAddress address of client
-     * @param clientPort port of client
+     * @param clientAddress   address of client
+     * @param clientPort      port of client
      * @param requestContents application specific content
      * @return a reply content that will be stored in the History
      */
@@ -497,15 +503,14 @@ public class Server {
                 System.out.println("Server: Error: Error reading source file!");
                 content = "5e2:Error reading source file. Please try again.";
             }
-        }
-        else {
+        } else {
             System.out.println("Server: Source file not found!");
             content = "5e1:Source file not found. Please try again.";
         }
 
         file = new File(targetPath);
 
-        if(readFlag) {
+        if (readFlag) {
             if (file.exists()) {
                 System.out.println("Server: Target file found!");
                 try {
@@ -547,7 +552,8 @@ public class Server {
                     tempRandomAccessFile.close();
                     tempFile.delete(); // Delete temporary file
 
-                    // Add file and current timestamp to fileTimeStamps since target file is modified
+                    // Add file and current timestamp to fileTimeStamps since target file is
+                    // modified
                     fileTmservers.put(targetPath, System.currentTimeMillis());
 
                 } catch (IOException e) {
@@ -565,9 +571,9 @@ public class Server {
         return content;
     }
 
-
     /**
      * Check if a request is non-idempotent
+     * 
      * @param requestType
      * @return true = non-idempotent, false = idempotent
      */
@@ -600,8 +606,9 @@ public class Server {
 
     /**
      * Get Tmserver(timestamp) of the file and send to client
-     * @param clientAddress address of client
-     * @param clientPort port of client
+     * 
+     * @param clientAddress   address of client
+     * @param clientPort      port of client
      * @param requestContents application specific content
      */
     private void getFileTmserver(InetAddress clientAddress, int clientPort, String requestContents) {

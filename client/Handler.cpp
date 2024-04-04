@@ -9,7 +9,7 @@
 
 Handler::Handler(int BUFFER_SIZE, double PACKET_SEND_LOSS_PROB, double PACKET_RECV_LOSS_PROB, double MONITORING_PACKET_RECV_LOSS_PROB, int MAX_RETRIES)
     : BUFFER_SIZE(BUFFER_SIZE), PACKET_SEND_LOSS_PROB(PACKET_SEND_LOSS_PROB),
-      PACKET_RECV_LOSS_PROB(PACKET_RECV_LOSS_PROB), MONITORING_PACKET_RECV_LOSS_PROB(MONITORING_PACKET_RECV_LOSS_PROB) ,MAX_RETRIES(MAX_RETRIES), requestIdCounter(0)
+      PACKET_RECV_LOSS_PROB(PACKET_RECV_LOSS_PROB), MONITORING_PACKET_RECV_LOSS_PROB(MONITORING_PACKET_RECV_LOSS_PROB), MAX_RETRIES(MAX_RETRIES), requestIdCounter(0)
 {
     clientAddress = getClientAddress();
 }
@@ -183,16 +183,17 @@ string Handler::sendOverUDP(string requestContent)
         // Marshal the data into a byte array
         vector<char> marshalledData = Marshaller::marshal(message);
 
-
         double random = getRandomDouble();
-        cout << "Random: "<< random << endl;
-        if (random < PACKET_SEND_LOSS_PROB){
+        cout << "Random: " << random << endl;
+        if (random < PACKET_SEND_LOSS_PROB)
+        {
             cout << "***** Simulating sending message loss from client *****" << endl;
         }
-        else {
-             // Send data over UDP
+        else
+        {
+            // Send data over UDP
             int bytesSent = sendto(this->socketDescriptor, marshalledData.data(), marshalledData.size(), 0,
-                                (SOCKADDR *)&this->serverAddress, sizeof(this->serverAddress));
+                                   (SOCKADDR *)&this->serverAddress, sizeof(this->serverAddress));
             if (bytesSent == SOCKET_ERROR)
             {
                 cerr << "Send failed with error: " << WSAGetLastError() << endl;
@@ -210,7 +211,6 @@ string Handler::sendOverUDP(string requestContent)
     return unmarshalledData;
 }
 
-
 /**
  * @brief Receives data over UDP from the server.
  * @param socket The socket descriptor.
@@ -221,7 +221,7 @@ string Handler::sendOverUDP(string requestContent)
  * and unmarshals the received data into a string. If a simulated message loss occurs
  * (based on the PACKET_RECV_LOSS_PROB), an empty string is returned.
  */
-string Handler::receiveOverUDP(SOCKET socket,  vector<char> marshalledData)
+string Handler::receiveOverUDP(SOCKET socket, vector<char> marshalledData)
 
 {
     string unmarshalledData;
@@ -246,15 +246,14 @@ string Handler::receiveOverUDP(SOCKET socket,  vector<char> marshalledData)
             srand(time(NULL));
             double randNum = static_cast<double>(rand()) / RAND_MAX;
 
-
-
             // Receive data from server over UDP
             int bytesReceived = recvfrom(socket, buffer.data(), buffer.size(), 0, (SOCKADDR *)&serverAddr, &serverAddrLen);
             if (bytesReceived == SOCKET_ERROR)
             {
                 throw runtime_error("Receive failed with error: " + GetWSAErrorMessage(WSAGetLastError()));
             }
-            else {
+            else
+            {
                 if (randNum < PACKET_RECV_LOSS_PROB)
                 {
                     cout << "\n***** Simulating receiving message loss from server *****" << endl;
@@ -266,8 +265,6 @@ string Handler::receiveOverUDP(SOCKET socket,  vector<char> marshalledData)
                 cout << "\nRaw Message from Server: " << unmarshalledData << endl;
             }
 
-
-
             break;
         }
         catch (exception &e)
@@ -276,13 +273,13 @@ string Handler::receiveOverUDP(SOCKET socket,  vector<char> marshalledData)
             retries++;
             // Reend data over UDP
             int bytesSent = sendto(this->socketDescriptor, marshalledData.data(), marshalledData.size(), 0,
-                                (SOCKADDR *)&this->serverAddress, sizeof(this->serverAddress));
+                                   (SOCKADDR *)&this->serverAddress, sizeof(this->serverAddress));
             if (bytesSent == SOCKET_ERROR)
             {
                 cerr << "Send failed with error: " << WSAGetLastError() << endl;
                 return "";
             }
-            cerr << "Retransmitting ("<< retries<<")..." << endl;
+            cerr << "Retransmitting (" << retries << ")..." << endl;
         }
     }
 
@@ -305,7 +302,7 @@ string Handler::monitorOverUDP()
     // Prepare a byte buffer to store received data
     vector<char> buffer(BUFFER_SIZE);
 
-    // Create a sockaddr structure for the server address
+    // Create a sockaddr structure for the server addressz
     SOCKADDR_IN serverAddr;
     int serverAddrLen = sizeof(serverAddr);
 
@@ -317,7 +314,6 @@ string Handler::monitorOverUDP()
 
         // srand(time(NULL));
         // double randNum = static_cast<double>(rand()) / RAND_MAX;
-
 
         // Receive data from server over UDP
         int bytesReceived = recvfrom(this->socketDescriptor, buffer.data(), buffer.size(), 0, (SOCKADDR *)&serverAddr, &serverAddrLen);
@@ -337,7 +333,6 @@ string Handler::monitorOverUDP()
 
         //     cout << "Raw Message from Server: " << unmarshalledData << endl;
         // }
-
     }
     catch (exception &e)
     {
@@ -381,7 +376,8 @@ string Handler::GetWSAErrorMessage(int errorCode)
     return errorMessage;
 }
 
-double Handler::getRandomDouble() {
+double Handler::getRandomDouble()
+{
     // Create a random device
     std::random_device rd;
 

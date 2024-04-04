@@ -31,7 +31,7 @@ Client::Client(int clientPort, string serverAddress, int serverPort, int BUFFER_
     this->serverAddress = serverAddress;
     this->serverPort = serverPort;
     this->freshnessInterval = freshnessInterval;
-    handler = new Handler(BUFFER_SIZE, PACKET_SEND_LOSS_PROB,PACKET_RECV_LOSS_PROB,MONITORING_PACKET_RECV_LOSS_PROB,  MAX_RETRIES);
+    handler = new Handler(BUFFER_SIZE, PACKET_SEND_LOSS_PROB, PACKET_RECV_LOSS_PROB, MONITORING_PACKET_RECV_LOSS_PROB, MAX_RETRIES);
     inputReader = new UserInputReader();
     isMonitoring = false;
     timerFlag = false;
@@ -254,14 +254,18 @@ void Client::startMonitor(string requestType)
     // Get the current time
     auto startTime = std::chrono::steady_clock::now();
 
-    while (isMonitoring) {
+    while (isMonitoring)
+    {
 
         // Check if monitoring minutes have passed
         auto currentTime = std::chrono::steady_clock::now();
         auto elapsedTime = std::chrono::duration_cast<std::chrono::seconds>(currentTime - startTime).count();
-        int allowance = 300; // 3 seconds
-        if (elapsedTime >= (monitorMinutes * 60) + allowance) {
+
+        int allowance = 1; // 3 seconds
+        if (elapsedTime >= (monitorMinutes * 60) + allowance)
+        {
             std::cout << monitorMinutes << " minute(s) have elapsed, monitoring has been stopped by client." << std::endl;
+            isMonitoring = false;
             break; // break and go back to UI
         }
 
@@ -270,13 +274,14 @@ void Client::startMonitor(string requestType)
         // Process monitoring reply from server
         processReplyFromServer(monitorFromServer);
 
-        if(!isMonitoring){
+        if (!isMonitoring)
+        {
             // Received monitoring expired message from server
             break; // break and go back to UI
         }
 
         // Sleep for a short duration to avoid high CPU usage
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        // std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
 }
 
@@ -344,11 +349,13 @@ void Client::startAppend(string requestType)
 void Client::processReplyFromServer(string message)
 {
     // Splitting the message into parts
-    if(message.empty()) {
+    if (message.empty())
+    {
         cout << "Simulated message loss.." << endl;
         return;
     }
-    else if(message == "Monitoring: No update for the past 1 sec...") {
+    else if (message == "Monitoring: No update for the past 1 sec...")
+    {
         return;
     }
 
@@ -430,7 +437,8 @@ void Client::processReplyFromServer(string message)
     {
         cout << "\nMonitor request failed: " << replyContents << endl;
     }
-    else if( replyType =="4"){
+    else if (replyType == "4")
+    {
         cout << "\nDelete request successful: " << replyContents << endl;
     }
     else if (replyType == "4e1" || replyType == "4e2")
@@ -489,7 +497,7 @@ void Client::processReplyFromServer(string message)
                 {
                     cout << "\nEntry is invalidated, A request is sent to server for updated data. " << endl;
 
-                    //Delete entry from cache as invalid.
+                    // Delete entry from cache as invalid.
                     cache.erase(cachePathName);
 
                     string requestContent = "1:" + pathName + ":" + offSet + ":" + bytesToRead;
@@ -581,7 +589,8 @@ void Client::printCacheContent()
  * and sleeps for that duration. If the timer flag is not set (indicating manual stop), it updates
  * the `isMonitoring` flag to false and prints a message indicating the possible reason for stopping.
  */
-void Client::monitorTimer(long monitorMinutes) {
+void Client::monitorTimer(long monitorMinutes)
+{
     // Convert monitorMinutes to milliseconds
     long extraBufferTime = 0.25 * 60 * 1000;
     long milliseconds = (monitorMinutes * 60 * 1000) + extraBufferTime;
@@ -589,7 +598,8 @@ void Client::monitorTimer(long monitorMinutes) {
     // Sleep for the specified duration
     std::this_thread::sleep_for(std::chrono::milliseconds(milliseconds));
 
-    if(!timerFlag) {
+    if (!timerFlag)
+    {
 
         return;
     }
