@@ -12,7 +12,7 @@ Client::Client(int clientPort, string serverAddress, int serverPort, int BUFFER_
     this->serverAddress = serverAddress;
     this->serverPort = serverPort;
     this->freshnessInterval = freshnessInterval;
-    handler = new Handler(BUFFER_SIZE, PACKET_SEND_LOSS_PROB,PACKET_RECV_LOSS_PROB,MONITORING_PACKET_RECV_LOSS_PROB,  MAX_RETRIES);
+    handler = new Handler(BUFFER_SIZE, PACKET_SEND_LOSS_PROB, PACKET_RECV_LOSS_PROB, MONITORING_PACKET_RECV_LOSS_PROB, MAX_RETRIES);
     inputReader = new UserInputReader();
     isMonitoring = false;
     timerFlag = false;
@@ -190,13 +190,15 @@ void Client::startMonitor(string requestType)
     timerThread.detach(); // Detach the thread to run independently
     timerFlag = true;
 
-    while (isMonitoring) {
+    while (isMonitoring)
+    {
         // Receives monitoring updates from server
         string monitorFromServer = handler->monitorOverUDP();
         // Process monitoring reply from server
         processReplyFromServer(monitorFromServer);
 
-        if(!isMonitoring){
+        if (!isMonitoring)
+        {
             break;
         }
     }
@@ -226,7 +228,6 @@ void Client::startAppend(string requestType)
     cout << "\nE.g. server/storage/hello.txt" << endl;
     string srcPath = inputReader->getString();
 
-
     cout << "\nEnter the pathname of the destination file to be appended to: ";
     cout << "\nE.g. server/storage/hello.txt" << endl;
     string targetPath = inputReader->getString();
@@ -242,11 +243,8 @@ void Client::startAppend(string requestType)
 void Client::processReplyFromServer(string message)
 {
     // Splitting the message into parts
-    if(message.empty()) {
-        cout << "Simulated message loss.." << endl;
-        return;
-    }
-    else if(message == "Monitoring") {
+    if (message.empty() || message == "Monitoring")
+    {
         return;
     }
 
@@ -328,7 +326,8 @@ void Client::processReplyFromServer(string message)
     {
         cout << "\nMonitor request failed: " << replyContents << endl;
     }
-    else if( replyType =="4"){
+    else if (replyType == "4")
+    {
         cout << "\nDelete request successful: " << replyContents << endl;
     }
     else if (replyType == "4e1" || replyType == "4e2")
@@ -387,7 +386,7 @@ void Client::processReplyFromServer(string message)
                 {
                     cout << "\nEntry is invalidated, A request is sent to server for updated data. " << endl;
 
-                    //Delete entry from cache as invalid.
+                    // Delete entry from cache as invalid.
                     cache.erase(cachePathName);
 
                     string requestContent = "1:" + pathName + ":" + offSet + ":" + bytesToRead;
@@ -456,7 +455,8 @@ void Client::printCacheContent()
     ConsoleUI::displaySeparator('=', 41);
 }
 
-void Client::monitorTimer(long monitorMinutes) {
+void Client::monitorTimer(long monitorMinutes)
+{
     // Convert monitorMinutes to milliseconds
     long extraBufferTime = 0.25 * 60 * 1000;
     long milliseconds = (monitorMinutes * 60 * 1000) + extraBufferTime;
@@ -464,13 +464,12 @@ void Client::monitorTimer(long monitorMinutes) {
     // Sleep for the specified duration
     std::this_thread::sleep_for(std::chrono::milliseconds(milliseconds));
 
-    if(!timerFlag) {
+    if (!timerFlag)
+    {
 
         return;
     }
     // Update the isMonitoring flag
     this->isMonitoring = false;
     cout << "\nMonitor stopped by Client: Possible reason could be loss of server packet" << endl;
-
-
 }

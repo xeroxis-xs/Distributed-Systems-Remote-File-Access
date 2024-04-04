@@ -29,14 +29,16 @@ private:
     SOCKET socketDescriptor;
 
 public:
-    Handler(int BUFFER_SIZE, double PACKET_SEND_LOSS_PROB, double PACKET_RECV_LOSS_PROB,double MONITORING_PACKET_RECV_LOSS_PROB, int MAX_RETRIES);
+    Handler(int BUFFER_SIZE, double PACKET_SEND_LOSS_PROB, double PACKET_RECV_LOSS_PROB, double MONITORING_PACKET_RECV_LOSS_PROB, int MAX_RETRIES);
 
     string getClientAddress();
     string generateRequestId(string clientAddress, int clientPort);
-    string receiveOverUDP(SOCKET socket);
+    string receiveOverUDP(SOCKET socket, vector<char> marshalledData, bool status);
     string sendOverUDP(string requestContent);
     string monitorOverUDP();
     string GetWSAErrorMessage(int errorCode);
+    bool isSocketOpen(SOCKET socket);
+    double getRandomNumber();
 
     void connectToServer(string serverAddress, int serverPort);
     void openPort(int clientPort);
