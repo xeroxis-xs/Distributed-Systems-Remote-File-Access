@@ -413,8 +413,11 @@ void Client::processReplyFromServer(string message)
 
         cout << "\nFile content is cached to client: " << endl;
     }
-    else if (replyType == "1e1" || replyType == "1e2" || replyType == "1e3" || replyType == "1e4" ||
-             replyType == "2" || replyType == "2e1" || replyType == "2e2" || replyType == "2e3" || replyType == "2e4")
+    else if (replyType == "2")
+    {
+        cout << "\nRead/Insert request successful: " << replyContents << endl;
+    }
+    else if (replyType == "1e1" || replyType == "1e2" || replyType == "1e3" || replyType == "1e4" || replyType == "2e1" || replyType == "2e2" || replyType == "2e3" || replyType == "2e4")
     {
         cout << "\nRead/Insert request failed: " << replyContents << endl;
     }
