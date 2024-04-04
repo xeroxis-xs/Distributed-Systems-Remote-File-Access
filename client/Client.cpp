@@ -227,7 +227,7 @@ void Client::startInsert(string requestType)
  * monitoring updates from the server until the monitoring period ends.
  */
 void Client::startMonitor(string requestType)
-{   
+{
     // Request the file path to be monitored
     cout << "\nEnter the pathname of the target file to be monitored: ";
     cout << "\nE.g. server/storage/hello.txt" << endl;
@@ -236,7 +236,7 @@ void Client::startMonitor(string requestType)
     // Request the duration to be monitored for
     cout << "\nEnter the duration (in minutes) you would like to receive updates for: ";
     cout << "\nE.g. 1" << endl;
-    long monitorMinutes = inputReader->getLong();
+    int monitorMinutes = inputReader->getInt();
 
     cout << "You have selected to monitor " << pathname << " for " << monitorMinutes << " minute(s)" << endl;
     string requestContent = requestType + ":" + pathname + ":" + to_string(monitorMinutes);
@@ -247,19 +247,36 @@ void Client::startMonitor(string requestType)
     // Process reply from server
     processReplyFromServer(replyFromServer);
 
-    std::thread timerThread(&Client::monitorTimer, this, monitorMinutes);
-    timerThread.detach(); // Detach the thread to run independently
-    timerFlag = true;
+    // std::thread timerThread(&Client::monitorTimer, this, monitorMinutes);
+    // timerThread.detach(); // Detach the thread to run independently
+    // timerFlag = true;
+
+    // Get the current time
+    auto startTime = std::chrono::steady_clock::now();
 
     while (isMonitoring) {
+
+        // Check if monitoring minutes have passed
+        auto currentTime = std::chrono::steady_clock::now();
+        auto elapsedTime = std::chrono::duration_cast<std::chrono::seconds>(currentTime - startTime).count();
+        int allowance = 300; // 3 seconds
+        if (elapsedTime >= (monitorMinutes * 60) + allowance) {
+            std::cout << monitorMinutes << " minute(s) have elapsed, monitoring has been stopped by client." << std::endl;
+            break; // break and go back to UI
+        }
+
         // Receives monitoring updates from server
         string monitorFromServer = handler->monitorOverUDP();
         // Process monitoring reply from server
         processReplyFromServer(monitorFromServer);
 
         if(!isMonitoring){
-            break;
+            // Received monitoring expired message from server
+            break; // break and go back to UI
         }
+
+        // Sleep for a short duration to avoid high CPU usage
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
 }
 
@@ -331,7 +348,7 @@ void Client::processReplyFromServer(string message)
         cout << "Simulated message loss.." << endl;
         return;
     }
-    else if(message == "Monitoring") {
+    else if(message == "Monitoring: No update for the past 1 sec...") {
         return;
     }
 

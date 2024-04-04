@@ -572,7 +572,7 @@ public class Server {
      * @return true = non-idempotent, false = idempotent
      */
     private boolean isNonIdempotent(String requestType) {
-        if (requestType.equals("2") || requestType.equals("5")) {
+        if (requestType.equals("2") || requestType.equals("5") || requestType.equals("3")) {
             System.out.println("Server: Non-idempotent operation");
             return true;
         }

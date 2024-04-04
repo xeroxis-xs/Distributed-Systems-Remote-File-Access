@@ -246,7 +246,7 @@ string Handler::receiveOverUDP(SOCKET socket,  vector<char> marshalledData)
             srand(time(NULL));
             double randNum = static_cast<double>(rand()) / RAND_MAX;
 
-             
+
 
             // Receive data from server over UDP
             int bytesReceived = recvfrom(socket, buffer.data(), buffer.size(), 0, (SOCKADDR *)&serverAddr, &serverAddrLen);
@@ -266,7 +266,7 @@ string Handler::receiveOverUDP(SOCKET socket,  vector<char> marshalledData)
                 cout << "\nRaw Message from Server: " << unmarshalledData << endl;
             }
 
-           
+
 
             break;
         }
@@ -300,7 +300,7 @@ string Handler::receiveOverUDP(SOCKET socket,  vector<char> marshalledData)
 string Handler::monitorOverUDP()
 {
     string unmarshalledData;
-    int timeout = 5000;
+    int timeout = 1000;
 
     // Prepare a byte buffer to store received data
     vector<char> buffer(BUFFER_SIZE);
@@ -310,35 +310,34 @@ string Handler::monitorOverUDP()
     int serverAddrLen = sizeof(serverAddr);
 
     try
-    {   
+    {
 
         // Remove any timeout since it is a blocking operation
         setsockopt(this->socketDescriptor, SOL_SOCKET, SO_RCVTIMEO, (char *)&timeout, sizeof(timeout));
 
-        srand(time(NULL));
-        double randNum = static_cast<double>(rand()) / RAND_MAX;
+        // srand(time(NULL));
+        // double randNum = static_cast<double>(rand()) / RAND_MAX;
 
-          
+
         // Receive data from server over UDP
         int bytesReceived = recvfrom(this->socketDescriptor, buffer.data(), buffer.size(), 0, (SOCKADDR *)&serverAddr, &serverAddrLen);
         if (bytesReceived == SOCKET_ERROR)
         {
-            
-            return "Monitoring";
+            return "Monitoring: No update for the past 1 sec...";
         }
-        else
-        {
-            if (randNum < MONITORING_PACKET_RECV_LOSS_PROB)
-            {
-                cout << "\n***** Simulating receiving message loss from server while monitoring *****" << endl;
-                return ""; // Simulate message loss by not receiving the packet
-            }
-            // Unmarshal the data into a String
-            unmarshalledData = Marshaller::unmarshal(buffer);
+        // else
+        // {
+        //     if (randNum < MONITORING_PACKET_RECV_LOSS_PROB)
+        //     {
+        //         cout << "\n***** Simulating receiving message loss from server while monitoring *****" << endl;
+        //         return ""; // Simulate message loss by not receiving the packet
+        //     }
+        //     // Unmarshal the data into a String
+        //     unmarshalledData = Marshaller::unmarshal(buffer);
 
-            cout << "Raw Message from Server: " << unmarshalledData << endl;
-        }
-        
+        //     cout << "Raw Message from Server: " << unmarshalledData << endl;
+        // }
+
     }
     catch (exception &e)
     {
