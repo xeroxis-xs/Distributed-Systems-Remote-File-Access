@@ -446,6 +446,9 @@ void Client::processReplyFromServer(string message)
     }
     else if (replyType == "4")
     {
+        string pathName = messageParts[5];
+        string replyContents = concatenateFromIndex(messageParts, 6, ":");
+        deleteCacheContent(pathName);
         cout << "\nDelete request successful: " << replyContents << endl;
     }
     else if (replyType == "4e1" || replyType == "4e2")
@@ -460,6 +463,9 @@ void Client::processReplyFromServer(string message)
     }
     else if (replyType == "5")
     {
+        string pathName = messageParts[5];
+        string replyContents = concatenateFromIndex(messageParts, 6, ":");
+        deleteCacheContent(pathName);
         cout << "\nAppend successfull: " << replyContents << endl;
     }
     else if (replyType == "5e1" || replyType == "5e2" || replyType == "5e3" || replyType == "5e4")

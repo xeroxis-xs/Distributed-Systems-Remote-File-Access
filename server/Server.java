@@ -450,7 +450,7 @@ public class Server {
             File myObj = new File(filePath);
             if (myObj.delete()) {
                 System.out.println("Server: Deleted the file: " + myObj.getName());
-                content = "4:File has been deleted successfully.";
+                content = "4:"+ filePath +":File has been deleted successfully.";
 
                 // Inform subscribers about file deletion
                 informSubscribersAboutDeletion(filePath);
@@ -542,7 +542,7 @@ public class Server {
                     }
 
                     System.out.println("Server: File content appended successfully.");
-                    content = "5:File content has been appended successfully.";
+                    content = "5:"+ filePath+ ":File content has been appended successfully.";
 
                     // New changes to the file, update subscribers
                     informSubscribers(targetPath);
