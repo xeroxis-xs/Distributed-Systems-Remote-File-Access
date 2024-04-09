@@ -408,6 +408,7 @@ void Client::processReplyFromServer(string message)
         long long Tmserver = std::stoll(tmserver);
         entry.Tmclient = Tmserver;
         entry.content = replyContents;
+        entry.filepath = pathName;
         string cachePathName = pathName + ":" + offSet + ":" + bytesToRead;
         cache[cachePathName] = entry;
 
@@ -415,6 +416,9 @@ void Client::processReplyFromServer(string message)
     }
     else if (replyType == "2")
     {
+        string pathName = messageParts[5];
+        string replyContents = concatenateFromIndex(messageParts, 6, ":");
+        deleteCacheContent(pathName);
         cout << "\nRead/Insert request successful: " << replyContents << endl;
     }
     else if (replyType == "1e1" || replyType == "1e2" || replyType == "1e3" || replyType == "1e4" || replyType == "2e1" || replyType == "2e2" || replyType == "2e3" || replyType == "2e4")
@@ -584,6 +588,21 @@ void Client::printCacheContent()
     ConsoleUI::displaySeparator('=', 41);
 }
 
+void Client::deleteCacheContent(string pathName)
+{
+    for (auto it = cache.begin(); it != cache.end();)
+    {
+        if (it->first.find(pathName) != std::string::npos)
+        {
+            cache.erase(it++);
+        }
+        else
+        {
+            ++it;
+        }
+    }
+}
+
 /**
  * @brief Monitors the specified duration and stops monitoring.
  * @param monitorMinutes The duration (in minutes) to monitor.
@@ -610,3 +629,4 @@ void Client::monitorTimer(long monitorMinutes)
     this->isMonitoring = false;
     cout << "\nMonitor stopped by Client: Possible reason could be loss of server packet" << endl;
 }
+

@@ -39,6 +39,7 @@ private:
      */
     struct CacheEntry
     {
+        string filepath;
         string content;
         long long Tc;
         long long Tmclient;
@@ -127,6 +128,11 @@ public:
      * @brief Prints the content of the cache.
      */
     void printCacheContent();
+
+    /**
+     * @brief Deletes the content of the cache.
+     */
+    void deleteCacheContent(string pathName);
 };
 
 #endif

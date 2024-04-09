@@ -283,7 +283,7 @@ public class Server {
                     }
 
                     System.out.println("Server: File content inserted successfully.");
-                    content = "2:File content has been inserted successfully.";
+                    content = "2:" + filePath + ":File content has been inserted successfully.";
 
                     // New changes to the file, update subscribers
                     informSubscribers(filePath);
