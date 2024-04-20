@@ -1,4 +1,4 @@
-# NTU SC4051 Distributed Systems Project
+# Distributed Systems Project
 ## Remote File Server
 This project aims to implement a system for remote file access based on client-server architecture using UDP communication. The system was implemented with two programming languages: the client program with `C++` and the server program with `Java`.
 The server provides five remote file services for the clients:
